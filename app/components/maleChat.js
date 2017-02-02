@@ -57,6 +57,12 @@ export default class MaleChat extends Component {
     })
   }
 
+
+  componentWillUnmount() {
+  	console.log('DB OFF')
+    firebase.database().ref().child('messages').child(this.chatID).off()
+  }
+
   componentWillMount() {
     this.watchChat()
   }

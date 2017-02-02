@@ -19,7 +19,7 @@ import { GiftedChat } from 'react-native-gifted-chat'
 
 const ratio = PixelRatio.get()
 
-export default class rightChat extends Component {
+export default class FemaleChat extends Component {
   constructor(props) {
     super(props);
     this.state = {messages: []}
@@ -53,8 +53,15 @@ export default class rightChat extends Component {
       });
       messages.reverse()
 
+      
+
       this.setState({messages})
     })
+  }
+
+   componentWillUnmount() {
+    console.log('DB OFF')
+    firebase.database().ref().child('messages').child(this.chatID).off()
   }
 
   componentWillMount() {

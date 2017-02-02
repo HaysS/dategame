@@ -30,11 +30,14 @@ export default class Home extends Component {
     this.state = { 
       profiles: [],
       user: this.props.user,
-      question: ''
+      question: '',
+      mounted: false,
     }
   }
 
   componentDidMount() {
+    this.setState({mounted: true})
+
     if(this.state.user.gender == 'male')
       FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
     else
@@ -54,10 +57,18 @@ export default class Home extends Component {
           const filteredProfiles = filterProfiles(newProfiles, user)
           this.setState({profiles:filteredProfiles})  
         })
-
-        this.watchForQuestion()
       }
     }) 
+
+    this.watchForQuestion()
+  }
+
+  componentWillReceiveProps() {
+    this.setState({mounted: false})
+  }
+
+  componentWillUnmount() {
+    firebase.database().ref().off()
   }
 
   watchForQuestion() {
@@ -98,9 +109,9 @@ export default class Home extends Component {
         if(this.state.question == '')
           FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
-        return(<Text style={styles.promptText}>{this.state.question}</Text>)
+        return(<View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text>{this.showChat()}</View>)
       } else
-        return(<Text style={styles.promptText}>A Question is Being Chosen...</Text>)
+        return(<View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text>{this.showChat()}</View>)
 
     } else if(user.gender == 'female') {
       
@@ -108,25 +119,25 @@ export default class Home extends Component {
         if(this.state.question == '')
           FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
 
-        return(<TouchableOpacity style={styles.promptTouchable} 
+        return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
                 onPress={() => {}}>
                 <Text style={styles.promptText}>{this.state.question}</Text>
-              </TouchableOpacity>)
+              </TouchableOpacity>{this.showChat()}</View>)
       } else
-        return(<TouchableOpacity style={styles.promptTouchable} 
+        return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
                 onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user}))}}>
                 <Text style={styles.promptText}>Ask Question</Text>
-              </TouchableOpacity>)
+              </TouchableOpacity>{this.showChat()}</View>)
 
     }
   }
 
-  showAnswers() {
-    console.log('show Answers')
+  showChat() {
+    console.log('show Chat')
     if(this.state.user.gender == 'male'){
         const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
         const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
-        
+
         return(<View style={styles.container}>
                  <View style={{flexDirection: 'row', justifyContent: 'center',}}>
                     <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
@@ -137,10 +148,7 @@ export default class Home extends Component {
                       <Text style={styles.name}>{maleProfile.first_name}</Text>
                     </TouchableOpacity>
                   </View>
-                  <MaleChat
-                    user={this.state.user} 
-                    maleProfile={maleProfile} 
-                    femaleProfile={femaleProfile} /> 
+                  <MaleChat user={this.state.user}  maleProfile={maleProfile} femaleProfile={femaleProfile} />
                 </View>)
       } else if(this.state.user.gender != 'male'){
         const leftProfile = this.state.profiles[0]
@@ -156,10 +164,7 @@ export default class Home extends Component {
                     <Text style={styles.name}>{rightProfile.first_name}</Text>
                   </TouchableOpacity>
                 </View>
-                <FemaleChat
-                  user={this.state.user} 
-                  firstProfile={leftProfile} 
-                  secondProfile={rightProfile} /> 
+                <FemaleChat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
               </View>)
       } 
     }
@@ -171,7 +176,7 @@ export default class Home extends Component {
       profiles,
     } = this.state
 
-    const isFindingProfiles = (profiles.length < 2)
+    const isFindingProfiles = (profiles.length < 2)      
 
     if(!isFindingProfiles) {
       const femaleProfile = (user.gender == 'female') ? user : this.state.profiles.find((profile) => {return (profile.gender == 'female')})
@@ -184,7 +189,6 @@ export default class Home extends Component {
           </TouchableOpacity>
           <View style={styles.container}>
             {this.showPrompt()}
-            {this.showAnswers()}
             <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
               <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Logout</Text>
             </TouchableOpacity>
