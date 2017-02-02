@@ -50,8 +50,9 @@ const styles = StyleSheet.create({
     borderBottomColor: 'lightgray'
   },
   question: {
+    margin: 10,
     color: '#2B2B2B',
-    fontSize: 40,   
+    fontSize: 24,   
     textAlign: 'center',
   },
 });

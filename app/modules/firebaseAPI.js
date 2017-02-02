@@ -21,7 +21,7 @@ export const updateUser = (uid, key, value) => {
 export const getQuestions = (func) => {
   firebase.database().ref().child('questions').once('value', (snap) => {
     if (snap.val()) {
-      const questions = snap.val().slice(1,5);
+      const questions = snap.val().slice(0, 4)
       func(questions)
     }})  
 }
@@ -34,16 +34,7 @@ export const getQuestion = (idString, func) => {
     })
 }
 
-const setDemoRelations = (uid) => { // so demo users can test match screen
-  firebase.database().ref().child('relationships').child(uid).child('likedBack')
-  .set({
-    '12MxHblv9UWGIUlyFlZXI8hBR3p1': true,
-    'XEQ9X4l72AbuM5l21IubZWP1MVA2': true
-  })
-}
-
 export const mergeUser = (uid, newData) => {
-  setDemoRelations(uid) //ADD DEMO RELATIONSHIP DATA
   console.log('newData', newData)
   const firebaseRefAtUID = firebase.database().ref().child('users/'+uid)
   return firebaseRefAtUID.once("value").then((snap) => {
@@ -53,8 +44,7 @@ export const mergeUser = (uid, newData) => {
         uid: uid,
         birthday: "01/01/1992",
         bio: 'App Developer',
-        selectedQuestion: '0',
-        answers: []
+        selectedQuestion: '-1',
     }
     const current = snap.val()
     const mergedUser = {...defaults, ...current, ...newData}

@@ -14,8 +14,8 @@ import {
 
 import Header from '../components/header'
 import Matching from '../components/matching'
-import EnterAnswer from '../components/enterAnswer'
-import ViewAnswer from '../components/viewAnswer'
+import FemaleChat from '../components/femaleChat'
+import MaleChat from '../components/maleChat'
 
 import {Router} from '../../app'
 import * as firebase from 'firebase'
@@ -35,36 +35,41 @@ export default class Home extends Component {
   }
 
   componentDidMount() {
+    if(this.state.user.gender == 'male')
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
+    else
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
+
+    FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
+
     FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
     FirebaseAPI.watchUser(this.state.user.uid, (user) => {
       if (user) {
-      this.setState({
+        this.setState({
           user: user,
         })
+
         FirebaseAPI.findProfiles(user, (profile) => {
           const newProfiles = [...this.state.profiles, profile]
-          console.log("NewProfiles: ")
-          console.log(newProfiles)
           const filteredProfiles = filterProfiles(newProfiles, user)
           this.setState({profiles:filteredProfiles})  
-          
-          this.watchForQuestion()
         })
+
+        this.watchForQuestion()
       }
     }) 
   }
 
   watchForQuestion() {
-     const profile = this.state.user.gender == 'male' ? this.state.profiles.find((profile) => {return profile.gender == 'female'}) : this.state.user.uid
+    const profile = this.state.user.gender == 'male' ? this.state.profiles.find((profile) => {return profile.gender == 'female'}) : this.state.user
 
-      if(profile != null) {
-        console.log('profileeed')
-        firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
-            console.log('watched complete')
-            FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => this.setState({question: question.text}))
-        })
-      }
+    if(profile != null) {
+      firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
+          console.log('watched complete')
+          FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => this.setState({question: question.text}))
+      })
     }
+  }
 
   logout () {
     this.props.navigator.popToTop()
@@ -82,33 +87,27 @@ export default class Home extends Component {
   }
 
   showPrompt() {
+    console.log('Show prompts')
     const {user} = this.state
 
     if(user.gender == 'male') {
       const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
 
-      if(profile.selectedQuestion != 0) {
-        if(this.state.question == '0')
+      if(profile.selectedQuestion != -1) {
+        if(this.state.question == '')
           FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
-        return(<TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {}}>
-                <Text style={styles.promptText}>{this.state.question}</Text>
-              </TouchableOpacity>)
+        return(<Text style={styles.promptText}>{this.state.question}</Text>)
       } else
-        return(<TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {}}>
-                <Text style={styles.promptText}>A Question is Being Chosen...</Text>
-              </TouchableOpacity>)
+        return(<Text style={styles.promptText}>A Question is Being Chosen...</Text>)
 
     } else if(user.gender == 'female') {
       
-      if(user.selectedQuestion != 0) {
+      if(user.selectedQuestion != -1) {
         if(this.state.question == '')
           FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
 
-        console.log(this.state.question)
         return(<TouchableOpacity style={styles.promptTouchable} 
                 onPress={() => {}}>
                 <Text style={styles.promptText}>{this.state.question}</Text>
@@ -123,42 +122,44 @@ export default class Home extends Component {
   }
 
   showAnswers() {
+    console.log('show Answers')
     if(this.state.user.gender == 'male'){
-        const profile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
+        const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
+        const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
         
         return(<View style={styles.container}>
-                <View style={{flex: 2}}>
-                  <View style={styles.containerTop}>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.state.user}))}}>
-                      <Text style={styles.name}>Your Answer</Text>
+                 <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
+                      <Text style={styles.name}>{this.props.user.first_name}</Text>
                     </TouchableOpacity>
-                    <EnterAnswer user={this.state.user} />
-                  </View>
-                  <View style={styles.containerBottom}>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: profile}))}}>
-                      <Text style={styles.name}>{profile.first_name} Answer</Text>
+                    <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
+                      <Text style={styles.name}>{maleProfile.first_name}</Text>
                     </TouchableOpacity>
-                    <ViewAnswer profile={profile} />
                   </View>
-                </View>
-              </View>)
+                  <MaleChat
+                    user={this.state.user} 
+                    maleProfile={maleProfile} 
+                    femaleProfile={femaleProfile} /> 
+                </View>)
       } else if(this.state.user.gender != 'male'){
-        const topProfile = this.state.profiles[0]
-        const bottomProfile = this.state.profiles[1]
+        const leftProfile = this.state.profiles[0]
+        const rightProfile = this.state.profiles[1]
         
         return(<View style={styles.container}>
-                <View style={{flex: 2}}>
-                  <View style={styles.containerTop}>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: topProfile}))}}>
-                      <Text style={styles.name}>{topProfile.first_name} Answer</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.containerBottom}>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: bottomProfile}))}}>
-                      <Text style={styles.name}>{bottomProfile.first_name} Answer</Text>
-                    </TouchableOpacity>
-                  </View>
+                <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
+                    <Text style={styles.name}>{leftProfile.first_name}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
+                    <Text style={styles.name}>{rightProfile.first_name}</Text>
+                  </TouchableOpacity>
                 </View>
+                <FemaleChat
+                  user={this.state.user} 
+                  firstProfile={leftProfile} 
+                  secondProfile={rightProfile} /> 
               </View>)
       } 
     }
@@ -166,15 +167,11 @@ export default class Home extends Component {
 
   render() {
     const {
-      profileIndex,
       user,
       profiles,
     } = this.state
 
     const isFindingProfiles = (profiles.length < 2)
-
-    console.log('rendered')
-    console.log(profiles)
 
     if(!isFindingProfiles) {
       const femaleProfile = (user.gender == 'female') ? user : this.state.profiles.find((profile) => {return (profile.gender == 'female')})
@@ -222,8 +219,9 @@ const styles = StyleSheet.create({
   },
   promptText: {
     marginTop: 10, 
-    marginBottom: 20, 
-    fontSize: 32,
+    marginBottom: 20,
+    margin: 10, 
+    fontSize: 28,
     textAlign: 'center'
   },
   promptTouchable: {
@@ -252,10 +250,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'gray'
   },
   nameHeader: {
-    width: width * 0.8,
+    width: width/3,
     alignSelf: 'center',
     borderBottomWidth:  1,
     borderColor: 'lightgrey'
+  },
+  nameHeaderPipe: {
+    width: width/5,
+    alignSelf: 'center',
   },
   name: {
     color: '#2B2B2B',

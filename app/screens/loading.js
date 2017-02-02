@@ -11,7 +11,6 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 import {Router} from '../../app'
 
 export default class Loading extends Component {
-  
   componentWillMount() {
     this.firebaseRef = firebase.database().ref('users')
   }
