@@ -1,5 +1,6 @@
 import React, {Component} from 'react'
 import {
+  Alert,
   View,
   Dimensions,
   TouchableOpacity,
@@ -22,7 +23,7 @@ const ratio = PixelRatio.get()
 export default class MaleChat extends Component {
   constructor(props) {
     super(props);
-    this.state = {messages: []}
+    this.state = {messages: [], reachedMax: false}
 
     const maleProfileUid = this.props.maleProfile.uid
     const femaleProfileUid = this.props.femaleProfile.uid
@@ -53,6 +54,12 @@ export default class MaleChat extends Component {
       });
       messages.reverse()
 
+      const uid = this.props.user.uid
+
+      if(messages.filter((m) => {return m.user._id === uid}).length >= 5) {
+          this.setState({reachedMax: true})
+      }
+
       this.setState({messages})
     })
   }
@@ -68,13 +75,21 @@ export default class MaleChat extends Component {
   }
 
   onSend(message) {
-    firebase.database().ref().child('messages').child(this.chatID)
-      .push({
-        text: message[0].text,
-        createdAt: new Date().getTime(),
-        sender: message[0].user._id,
-        name: this.props.user.first_name   
-      })
+    if(!this.state.reachedMax) {
+      firebase.database().ref().child('messages').child(this.chatID)
+        .push({
+          text: message[0].text,
+          createdAt: new Date().getTime(),
+          sender: message[0].user._id,
+          name: this.props.user.first_name   
+        })
+      const sentCount = this.state.sentCount+1
+
+      this.setState({sentCount: sentCount})
+    }
+    else {
+      Alert.alert('You have sent more than 5 messages. You must now wait for the decision.')
+    }
   }
 	render() {
 		return (

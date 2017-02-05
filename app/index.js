@@ -14,6 +14,7 @@ import LoginScreen from './screens/login'
 import ProfileScreen from './screens/profile'
 import LoadingScreen from './screens/loading'
 import QuestionsScreen from './screens/questions'
+import DecisionScreen from './screens/matchDecision'
 
 import * as firebase from 'firebase'
 
@@ -30,6 +31,7 @@ export const Router = createRouter(() => ({
   profile: () => ProfileScreen,
   loading: () => LoadingScreen,
   questions: () => QuestionsScreen,
+  matchDecision: () => DecisionScreen,
 }))
 
 export default class App extends Component {

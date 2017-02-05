@@ -16,6 +16,7 @@ import Header from '../components/header'
 import Matching from '../components/matching'
 import FemaleChat from '../components/femaleChat'
 import MaleChat from '../components/maleChat'
+import MatchDecision from './matchDecision'
 
 import {Router} from '../../app'
 import * as firebase from 'firebase'
@@ -32,6 +33,7 @@ export default class Home extends Component {
       user: this.props.user,
       question: '',
       mounted: false,
+      malesReachedMax: false,
     }
   }
 
@@ -82,6 +84,31 @@ export default class Home extends Component {
     }
   }
 
+  watchForMaxMessages() {
+      //Sort uid concatenation in order of greatness so every user links to the same chat
+      const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
+      uidArray.sort()
+      const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+
+      firebase.database().ref().child('users/'+this.state.user.uid).off()
+      firebase.database().ref().child('messages').child(chatID)
+        .on('value', (snap) => {
+        let messages = []
+        snap.forEach((child) => {
+          messages.push({
+            user: {
+              _id: child.val().sender,
+            }
+          })
+        });
+        const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
+
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5) {
+          this.setState({malesReachedMax: true})
+        }
+      })
+  }
+
   logout () {
     this.props.navigator.popToTop()
     InteractionManager.runAfterInteractions(() => {
@@ -105,19 +132,32 @@ export default class Home extends Component {
       const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
 
-      if(profile.selectedQuestion != -1) {
+      if(this.state.question == '' && this.state.malesReachedMax)
+          return(<View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>{this.showChat()}</View>)
+      else if(profile.selectedQuestion != -1) {
         if(this.state.question == '')
           FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
+        this.watchForMaxMessages()
+
         return(<View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text>{this.showChat()}</View>)
+
       } else
         return(<View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text>{this.showChat()}</View>)
 
     } else if(user.gender == 'female') {
-      
-      if(user.selectedQuestion != -1) {
+      if(user.selectedQuestion != -1 && this.state.malesReachedMax) {
+        profiles = this.state.profiles
+
+         return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+                onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
+                <Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>
+              </TouchableOpacity>{this.showChat()}</View>)
+      } else if(user.selectedQuestion != -1) {
         if(this.state.question == '')
           FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
+
+        this.watchForMaxMessages()
 
         return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
                 onPress={() => {}}>

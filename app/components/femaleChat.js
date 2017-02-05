@@ -52,9 +52,7 @@ export default class FemaleChat extends Component {
         })
       });
       messages.reverse()
-
       
-
       this.setState({messages})
     })
   }
