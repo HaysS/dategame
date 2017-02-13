@@ -44,7 +44,7 @@ export default class MatchDecision extends Component {
         <View style={styles.container}> 
           {
             profiles.map((profile, i) => {
-              return (<View style={{flex: 1, justifyContent: 'center'}} key={'view'+i}>
+              return (<View style={{flex: 1, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: 'lightgray'}} key={'view'+i}>
                 <TouchableOpacity onPress={() => {this.props.navigator.pop()}} key={'touchable'+i}>
                   <Text style={{fontSize: 32, textAlign: 'center'}} key={'text'+i}>{profile.first_name}</Text>
                 </TouchableOpacity>
