@@ -40,10 +40,7 @@ export default class Home extends Component {
   componentDidMount() {
     this.setState({mounted: true})
 
-    if(this.state.user.gender == 'male')
-      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
-    else
-      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
+    FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
 
@@ -103,8 +100,7 @@ export default class Home extends Component {
         });
         const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
 
-        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === this.state.user.uid}).length >= 5
-          || messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
           this.setState({malesReachedMax: true})
       })
   }
@@ -128,85 +124,48 @@ export default class Home extends Component {
     console.log('Show prompts')
     const {user} = this.state
 
-    if(user.gender == 'male') {
-      const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    if(user.selectedQuestion != -1 && this.state.malesReachedMax) {
+      profiles = this.state.profiles
 
+       return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
+              <Text style={styles.promptText}>Messages have run out. Make a decision.</Text>
+            </TouchableOpacity>{this.showChat()}</View>)
+    } else if(user.selectedQuestion != -1) {
+      if(this.state.question == '')
+        FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
 
-      if(profile.selectedQuestion != -1 && this.state.malesReachedMax)
-          return(<View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>{this.showChat()}</View>)
-      else if(profile.selectedQuestion != -1) {
-        if(this.state.question == '')
-          FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
+      this.watchForMaxMessages()
 
-        this.watchForMaxMessages()
-
-        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-
-      } else
-        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-
-    } else if(user.gender == 'female') {
-      if(user.selectedQuestion != -1 && this.state.malesReachedMax) {
-        profiles = this.state.profiles
-
-         return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
-                <Text style={styles.promptText}>Messages have run out. Make a decision.</Text>
-              </TouchableOpacity>{this.showChat()}</View>)
-      } else if(user.selectedQuestion != -1) {
-        if(this.state.question == '')
-          FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
-
-        this.watchForMaxMessages()
-
-        return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {}}>
-                <Text style={styles.promptText}>{this.state.question}</Text>
-              </TouchableOpacity>{this.showChat()}</View>)
-      } else
-        return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user}))}}>
-                <Text style={styles.promptText}>Ask Question</Text>
-              </TouchableOpacity>{this.showChat()}</View>)
-
-    }
+      return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {}}>
+              <Text style={styles.promptText}>{this.state.question}</Text>
+            </TouchableOpacity>{this.showChat()}</View>)
+    } else
+      return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user}))}}>
+              <Text style={styles.promptText}>Ask Question</Text>
+            </TouchableOpacity>{this.showChat()}</View>)
   }
 
   showChat() {
     console.log('show Chat')
-    if(this.state.user.gender == 'male'){
-        const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
-        const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-        return(<View style={styles.container}>
-                 <View style={{flexDirection: 'row', justifyContent: 'center',}}>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
-                      <Text style={styles.name}>{this.props.user.first_name}</Text>
-                    </TouchableOpacity>
-                    <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
-                    <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
-                      <Text style={styles.name}>{maleProfile.first_name}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <MaleChat user={this.state.user}  maleProfile={maleProfile} femaleProfile={femaleProfile} />
-                </View>)
-      } else if(this.state.user.gender != 'male'){
-        const leftProfile = this.state.profiles[0]
-        const rightProfile = this.state.profiles[1]
-        
-        return(<View style={styles.container}>
-                <View style={{flexDirection: 'row', justifyContent: 'center',}}>
-                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
-                    <Text style={styles.name}>{leftProfile.first_name}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
-                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
-                    <Text style={styles.name}>{rightProfile.first_name}</Text>
-                  </TouchableOpacity>
-                </View>
-                <FemaleChat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
-              </View>)
-      } 
+    const leftProfile = this.state.profiles[0]
+    const rightProfile = this.state.profiles[1]
+    
+    return(<View style={styles.container}>
+            <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+              <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
+                <Text style={styles.name}>{leftProfile.first_name}</Text>
+              </TouchableOpacity>
+              <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+              <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
+                <Text style={styles.name}>{rightProfile.first_name}</Text>
+              </TouchableOpacity>
+            </View>
+            <FemaleChat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
+          </View>)
     }
 
 
@@ -219,7 +178,7 @@ export default class Home extends Component {
     const isFindingProfiles = (profiles.length < 2)      
 
     if(!isFindingProfiles) {
-      const femaleProfile = (user.gender == 'female') ? user : this.state.profiles.find((profile) => {return (profile.gender == 'female')})
+      const femaleProfile = user
 
       return(
         <View style={{flex: 1}}>
@@ -253,6 +212,7 @@ export default class Home extends Component {
       ) 
   }
 }
+
 
 const styles = StyleSheet.create({
   container: {
