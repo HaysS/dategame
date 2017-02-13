@@ -103,9 +103,9 @@ export default class Home extends Component {
         });
         const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
 
-        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5) {
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === this.state.user.uid}).length >= 5
+          || messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
           this.setState({malesReachedMax: true})
-        }
       })
   }
 
@@ -132,7 +132,7 @@ export default class Home extends Component {
       const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
 
-      if(this.state.question == '' && this.state.malesReachedMax)
+      if(profile.selectedQuestion != -1 && this.state.malesReachedMax)
           return(<View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>{this.showChat()}</View>)
       else if(profile.selectedQuestion != -1) {
         if(this.state.question == '')
@@ -140,10 +140,10 @@ export default class Home extends Component {
 
         this.watchForMaxMessages()
 
-        return(<View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text>{this.showChat()}</View>)
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
 
       } else
-        return(<View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text>{this.showChat()}</View>)
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
 
     } else if(user.gender == 'female') {
       if(user.selectedQuestion != -1 && this.state.malesReachedMax) {
@@ -151,7 +151,7 @@ export default class Home extends Component {
 
          return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
                 onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
-                <Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>
+                <Text style={styles.promptText}>Messages have run out. Make a decision.</Text>
               </TouchableOpacity>{this.showChat()}</View>)
       } else if(user.selectedQuestion != -1) {
         if(this.state.question == '')
