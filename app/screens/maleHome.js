@@ -96,7 +96,7 @@ export default class Home extends Component {
             }
           })
         });
-        const maleProfile = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
+        const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
 
         if(messages.filter((m) => {return m.user._id === maleProfile.uid}).length >= 5 && messages.filter((m) => {return m.user._id === this.state.user.uid}).length >= 5)
           this.setState({malesReachedMax: true})
@@ -124,6 +124,8 @@ export default class Home extends Component {
 
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
+    console.log(this.state.malesReachedMax)
+
 
     if(profile.selectedQuestion != -1 && this.state.malesReachedMax)
         return(<View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>{this.showChat()}</View>)
@@ -131,7 +133,7 @@ export default class Home extends Component {
       if(this.state.question == '')
         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
-      this.watchForMaxMessages()
+        this.watchForMaxMessages()
 
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
 
