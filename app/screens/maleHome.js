@@ -30,13 +30,11 @@ export default class Home extends Component {
       profiles: [],
       user: this.props.user,
       question: '',
-      mounted: false,
       malesReachedMax: false,
     }
   }
 
   componentDidMount() {
-    this.setState({mounted: true})
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
 
@@ -57,11 +55,10 @@ export default class Home extends Component {
       }
     }) 
 
-    this.watchForQuestion()
-  }
-
-  componentWillReceiveProps() {
-    this.setState({mounted: false})
+    if(this.state.profiles.length >= 2) {
+      this.watchForQuestion()
+      this.watchForMaxMessages()
+    }
   }
 
   componentWillUnmount() {
@@ -133,10 +130,7 @@ export default class Home extends Component {
       if(this.state.question == '')
         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
-        this.watchForMaxMessages()
-
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-
     } else
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
   }
