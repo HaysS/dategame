@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 
 import BackHeader from '../components/backHeader'
+import * as FirebaseAPI from '../modules/firebaseAPI'
 
 import {Router} from '../../app'
 
@@ -24,6 +25,11 @@ export default class MatchDecision extends Component {
       topProfile: this.props.topProfile,
       bottomProfile: this.props.bottomProfile
     }
+  }
+
+  chooseProfile(profile) {
+    FirebaseAPI.likeProfile(this.state.user.uid, profile.uid)
+    this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
   }
 
   render() {
@@ -45,7 +51,7 @@ export default class MatchDecision extends Component {
           {
             profiles.map((profile, i) => {
               return (<View style={{flex: 1, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: 'lightgray'}} key={'view'+i}>
-                <TouchableOpacity onPress={() => {this.props.navigator.pop()}} key={'touchable'+i}>
+                <TouchableOpacity onPress={() => {this.chooseProfile(profile)}} key={'touchable'+i}>
                   <Text style={{fontSize: 32, textAlign: 'center'}} key={'text'+i}>{profile.first_name}</Text>
                 </TouchableOpacity>
               </View>)

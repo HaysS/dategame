@@ -66,7 +66,7 @@ export const likeProfile = (userUid, profileUid) => {
   firebase.database().ref().child('relationships').child(userUid).child('liked')
     .child(profileUid).set(true)
   firebase.database().ref().child('relationships').child(profileUid).child('likedBack')
-  .child(userUid).set(true)
+    .child(userUid).set(true)
 }
 
 export const getUser = (key) => {
