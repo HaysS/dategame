@@ -9,6 +9,7 @@ import {
   StackNavigation,
 } from '@exponent/ex-navigation';
 
+import MenuScreen from './screens/menu'
 import MaleHomeScreen from './screens/maleHome'
 import FemaleHomeScreen from './screens/femaleHome'
 import LoginScreen from './screens/login'
@@ -28,6 +29,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig)
 
 export const Router = createRouter(() => ({
+  menu: () => MenuScreen,
   maleHome: () => MaleHomeScreen,
   femaleHome: () => FemaleHomeScreen,
   login: () => LoginScreen,

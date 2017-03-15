@@ -50,10 +50,7 @@ export default class Login extends Component {
       				this.firebaseRef.child(fbAuth.uid).on('value', snap => {
 						const user = snap.val()
 						if (user != null) {
-							if(user.gender == "male")
-								this.props.navigator.push(Router.getRoute('maleHome', {user}))
-							else if(user.gender == "female")
-								this.props.navigator.push(Router.getRoute('femaleHome', {user}))
+							this.props.navigator.push(Router.getRoute('menu', {user}))
 						}
 					})
 				}
