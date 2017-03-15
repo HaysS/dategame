@@ -2,7 +2,6 @@ import React, {Component} from 'react'
 import {
   Alert,
   View,
-  Dimensions,
   TouchableOpacity,
   Text,
   PixelRatio,
@@ -15,7 +14,6 @@ import {Ionicons} from '@exponent/vector-icons'
 import {Router} from '../../app'
 
 
-const {height, width} = Dimensions.get('window')
 import { GiftedChat } from 'react-native-gifted-chat'
 
 const ratio = PixelRatio.get()
@@ -66,7 +64,6 @@ export default class MaleChat extends Component {
 
 
   componentWillUnmount() {
-  	console.log('DB OFF')
     firebase.database().ref().child('messages').child(this.chatID).off()
   }
 
@@ -92,6 +89,7 @@ export default class MaleChat extends Component {
     }
   }
 	render() {
+    console.log("Why is this getting called")
 		return (
         <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
           <GiftedChat
@@ -106,31 +104,3 @@ export default class MaleChat extends Component {
 	}
 
  }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width:width,
-    backgroundColor:'white',
-  },
-  answer: {
-    color: '#2B2B2B',
-    fontSize: 40,   
-    textAlign: 'center',
-  },
-  nameHeader: {
-    width: width/3,
-    alignSelf: 'center',
-    borderBottomWidth:  1,
-    borderColor: 'lightgrey'
-  },
-  nameHeaderPipe: {
-    width: width/5,
-    alignSelf: 'center',
-  },
-  name: {
-    color: '#2B2B2B',
-    fontSize: 20,   
-    textAlign: 'center',
-  },
-});

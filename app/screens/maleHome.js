@@ -24,12 +24,14 @@ import filterProfiles from '../modules/filter'
 
 const {height, width} = Dimensions.get('window');
 
-export default class Home extends Component {
+export default class MaleHome extends Component {
   componentWillMount() {
     this.state = { 
       profiles: [],
       user: this.props.user,
       question: '',
+      foundProfiles: false,
+      decisionValue: '',
     }
   }
 
@@ -42,25 +44,48 @@ export default class Home extends Component {
     FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
     FirebaseAPI.watchUser(this.state.user.uid, (user) => {
       if (user) {
-        this.setState({
-          user: user,
-        })
-
         FirebaseAPI.findProfiles(user, (profile) => {
-          const newProfiles = [...this.state.profiles, profile]
-          const filteredProfiles = filterProfiles(newProfiles, user)
-          this.setState({profiles:filteredProfiles})  
-        })
+
+          if(!this.state.foundProfiles) {
+            const newProfiles = [...this.state.profiles, profile]
+            const filteredProfiles = filterProfiles(newProfiles, user)
+
+            if(filteredProfiles.length < 2){
+              this.setState({profiles: filteredProfiles})            
+            } 
+
+            if(filteredProfiles.length >= 2) {//If there are still less than 2 profiles after filtering
+              this.setState({profiles: filteredProfiles, foundProfiles: true})               
+            }
+          } 
+
+          if(this.state.foundProfiles) {
+            console.log('903214595555555555555555555555555555555555555555')
+            if(!this.state.checkDecision) {
+              console.log('checking Decision')
+
+              this.hasDecision()
+            }
+            return true
+          }
+
+          return false
+      })
       }
-    }) 
+    })
   }
 
   componentWillUnmount() {
-    firebase.database().ref().off()
+    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+
+    FirebaseAPI.removeLikesWatcher(profile.uid)
+    firebase.database().ref().child('users/'+profile.uid).off()
   }
 
-  componenetDidUpdate() {
-
+  componentDidUpdate() {
+    if(this.state.foundProfiles && this.state.decisionValue == 'hasDecision') {
+      this.endGame()
+    }
   }
 
   watchForQuestion() {
@@ -68,7 +93,6 @@ export default class Home extends Component {
 
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
-          console.log('watched complete')
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => this.setState({question: question.text}))
       })
     }
@@ -82,9 +106,48 @@ export default class Home extends Component {
       FirebaseAPI.watchLikes(profile.uid, (uid) => {
         if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
-        } else 
-          Alert.alert('YOU WERE NOT CHOSEN. BUT I STILL LOVE U')
+        } else {
+          Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
+          this.props.navigator.pop()
+        }
       }) 
+    }
+  }
+
+  hasDecision() {
+    console.log('checkDecision')
+
+    const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
+
+    if(femaleProfile != null && maleProfile != null) {
+      //Check for when if the female decided on a match
+      FirebaseAPI.checkLikes(femaleProfile.uid, (uid) => {
+        if(uid != null)
+          if (uid[this.state.user.uid] || uid[maleProfile.uid]) {//Will return true if there is a decision
+            if(!this.state.hasDecision) {
+              console.log('akdsjflaksdjflsdkflj')
+              this.setState({'decisionValue': 'hasDecision'})
+            }
+          }
+      })
+    } else
+      this.setState({'decisionValue': 'none'})
+  }
+
+  endGame() {
+    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+
+    if(profile != null) {
+      FirebaseAPI.checkLikes(profile.uid, (uid) => {
+        console.log(uid)
+        if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
+          this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
+        } else {
+          Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
+          this.props.navigator.pop()
+        }
+      })
     }
   }
 
@@ -116,8 +179,10 @@ export default class Home extends Component {
         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-    } else
+    } else {
+      this.watchForQuestion()
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+    }
   }
 
   showChat() {
@@ -146,13 +211,19 @@ export default class Home extends Component {
       user,
       profiles,
     } = this.state
+    
+    if(!(profiles.length < 2))     
+      FirebaseAPI.removeWatchUser(this.state.user.uid)
 
-    const isFindingProfiles = (profiles.length < 2)      
+    console.log("RENDER ------------------------")
+    console.log(this.state.foundProfiles)
+    console.log(this.state.decisionValue)
+    console.log("-------------------------------")
 
-    if(!isFindingProfiles) {
-      this.watchForQuestion()
-      this.watchForMatch()
+    if(this.state.decisionValue == 'none' && this.state.foundProfiles) {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})
+      // this.watchForQuestion()
+      // this.watchForMatch()
 
       return(
         <View style={{flex: 1}}>

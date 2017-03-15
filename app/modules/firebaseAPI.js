@@ -18,6 +18,19 @@ export const updateUser = (uid, key, value) => {
     .update({[key]:value})
 }
 
+
+const setDemoRelation = (uid) => { // so demo users can test match screen
+  firebase.database().ref().child('relationships').child(uid).child('likedBack')
+  .set({
+    'demoRelation': true,
+  })
+
+  firebase.database().ref().child('relationships').child(uid).child('likes')
+  .set({
+    'demoRelation': true,
+  })
+}
+
 export const getQuestions = (func) => {
   firebase.database().ref().child('questions').once('value', (snap) => {
     if (snap.val()) {
@@ -35,6 +48,7 @@ export const getQuestion = (idString, func) => {
 }
 
 export const mergeUser = (uid, newData) => {
+  setDemoRelation(uid)
   console.log('newData', newData)
   const firebaseRefAtUID = firebase.database().ref().child('users/'+uid)
   return firebaseRefAtUID.once("value").then((snap) => {
@@ -80,10 +94,28 @@ export const watchUser = (key, func) => {
   })
 }
 
+export const removeWatchUser = (key) => {
+  firebase.database().ref().child('users/'+key).off()
+}
+
 export const watchLikes = (key, func) => {
-  firebase.database().ref().child('relationships/'+key).child('liked').on('value', (snap) => {
-    func(snap.val())
-  })
+  if(firebase.database().ref().child('relationships/'+key).child('liked').once('value', (snap) => {return snap.val() == undefined})) {
+    firebase.database().ref().child('relationships/'+key).child('liked').on('value', (snap) => {
+      func(snap.val())
+    })
+  }
+}
+
+export const checkLikes = (key, func) => {
+  firebase.database().ref().child('relationships/'+key).child('liked').once('value', (snap) => {
+    if(snap.val() != undefined)
+      func(snap.val())
+    else
+      func(null)})
+}
+
+export const removeLikesWatcher = (key) => {
+  firebase.database().ref().child('relationships/'+key).child('liked').off()
 }
 
 export const watchUserLocation = (key) => {
@@ -118,7 +150,7 @@ export const watchUserLocationDemo = (key) => {
 export const findProfiles = (user, func) => {
   const firebaseRef = firebase.database().ref()
   const geoFire = new GeoFire(firebaseRef.child('geoData/'))
-  geoFire.get(user.uid).then(location => {
+  geoFire.get(user.uid).then(location => {    
     const geoQuery = geoFire.query({
       center: location,
       radius: user.maxDistance
@@ -126,11 +158,21 @@ export const findProfiles = (user, func) => {
     geoQuery.on("ready", (res) => { // loaded geodata
       geoQuery.cancel()
     })
+
+    //This will return the GeoCallbackRegistration so that it can be use to cancel the listener later
     geoQuery.on("key_entered", (key, location, distance) => {
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
-      getUser(key).then(func)
+      getUser(key).then(func).then((bool) => {if(bool) {
+        console.log('cancelled geoquery')
+        geoQuery.cancel()}})
     })
   })
+}
+
+export const cancelGeoQuery = (geoCallbackRegistration) => {
+  console.log("geoCallbackRegistration")
+  console.log(geoCallbackRegistration)
+  geoCallbackRegistration.cancel()
 }
 
 const identifyMatches =  (liked, likedBack) => {
