@@ -60,12 +60,9 @@ export default class MaleHome extends Component {
           } 
 
           if(this.state.foundProfiles) {
-            console.log('903214595555555555555555555555555555555555555555')
-            if(!this.state.checkDecision) {
-              console.log('checking Decision')
-
+            if(!this.state.checkDecision)
               this.hasDecision()
-            }
+
             return true
           }
 
@@ -115,8 +112,6 @@ export default class MaleHome extends Component {
   }
 
   hasDecision() {
-    console.log('checkDecision')
-
     const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
     const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
 
@@ -126,7 +121,6 @@ export default class MaleHome extends Component {
         if(uid != null)
           if (uid[this.state.user.uid] || uid[maleProfile.uid]) {//Will return true if there is a decision
             if(!this.state.hasDecision) {
-              console.log('akdsjflaksdjflsdkflj')
               this.setState({'decisionValue': 'hasDecision'})
             }
           }
@@ -140,7 +134,6 @@ export default class MaleHome extends Component {
 
     if(profile != null) {
       FirebaseAPI.checkLikes(profile.uid, (uid) => {
-        console.log(uid)
         if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
         } else {
@@ -167,7 +160,6 @@ export default class MaleHome extends Component {
   }
 
   showPrompt() {
-    console.log('Show prompts')
     const {user} = this.state
 
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
@@ -186,8 +178,6 @@ export default class MaleHome extends Component {
   }
 
   showChat() {
-    console.log('show Chat')
-
     const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
     const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
@@ -214,11 +204,6 @@ export default class MaleHome extends Component {
     
     if(!(profiles.length < 2))     
       FirebaseAPI.removeWatchUser(this.state.user.uid)
-
-    console.log("RENDER ------------------------")
-    console.log(this.state.foundProfiles)
-    console.log(this.state.decisionValue)
-    console.log("-------------------------------")
 
     if(this.state.decisionValue == 'none' && this.state.foundProfiles) {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})

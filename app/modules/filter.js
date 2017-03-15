@@ -8,14 +8,12 @@ export default filterProfiles = (profiles, user) => {
   let passedMaleProfile = false
   let counter = 0
   const filteredProfiles = uniqueProfiles.filter((profile) => {
-    console.log("Profile:")
-    console.log(profile)
+    // console.log("Profile:")
+    // console.log(profile)
+    
     const isUser = profile.uid != null ? user.uid === profile.uid : false
 
     return (
-      //profile is within user age range AND user is within profile age range
-      //(userAgeRange && profileAgeRange) &&
-
       !isUser
     )
   }).map((profile, index) => {

@@ -19,17 +19,17 @@ export const updateUser = (uid, key, value) => {
 }
 
 
-const setDemoRelation = (uid) => { // so demo users can test match screen
-  firebase.database().ref().child('relationships').child(uid).child('likedBack')
-  .set({
-    'demoRelation': true,
-  })
+// const setDemoRelation = (uid) => { // so demo users can test match screen
+//   firebase.database().ref().child('relationships').child(uid).child('likedBack')
+//   .set({
+//     'demoRelation': true,
+//   })
 
-  firebase.database().ref().child('relationships').child(uid).child('likes')
-  .set({
-    'demoRelation': true,
-  })
-}
+//   firebase.database().ref().child('relationships').child(uid).child('likes')
+//   .set({
+//     'demoRelation': true,
+//   })
+// }
 
 export const getQuestions = (func) => {
   firebase.database().ref().child('questions').once('value', (snap) => {
@@ -48,7 +48,7 @@ export const getQuestion = (idString, func) => {
 }
 
 export const mergeUser = (uid, newData) => {
-  setDemoRelation(uid)
+ // setDemoRelation(uid)
   console.log('newData', newData)
   const firebaseRefAtUID = firebase.database().ref().child('users/'+uid)
   return firebaseRefAtUID.once("value").then((snap) => {
@@ -163,16 +163,10 @@ export const findProfiles = (user, func) => {
     geoQuery.on("key_entered", (key, location, distance) => {
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
       getUser(key).then(func).then((bool) => {if(bool) {
-        console.log('cancelled geoquery')
+        //console.log('cancelled geoquery')
         geoQuery.cancel()}})
     })
   })
-}
-
-export const cancelGeoQuery = (geoCallbackRegistration) => {
-  console.log("geoCallbackRegistration")
-  console.log(geoCallbackRegistration)
-  geoCallbackRegistration.cancel()
 }
 
 const identifyMatches =  (liked, likedBack) => {
