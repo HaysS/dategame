@@ -30,7 +30,6 @@ export default class Home extends Component {
       profiles: [],
       user: this.props.user,
       question: '',
-      malesReachedMax: false,
     }
   }
 
@@ -54,15 +53,14 @@ export default class Home extends Component {
         })
       }
     }) 
-
-    if(this.state.profiles.length >= 2) {
-      this.watchForQuestion()
-      this.watchForMaxMessages()
-    }
   }
 
   componentWillUnmount() {
     firebase.database().ref().off()
+  }
+
+  componenetDidUpdate() {
+
   }
 
   watchForQuestion() {
@@ -76,28 +74,18 @@ export default class Home extends Component {
     }
   }
 
-  watchForMaxMessages() {
-      //Sort uid concatenation in order of greatness so every user links to the same chat
-      const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
-      uidArray.sort()
-      const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+  watchForMatch() {
+    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-      firebase.database().ref().child('users/'+this.state.user.uid).off()
-      firebase.database().ref().child('messages').child(chatID)
-        .on('value', (snap) => {
-        let messages = []
-        snap.forEach((child) => {
-          messages.push({
-            user: {
-              _id: child.val().sender,
-            }
-          })
-        });
-        const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
-
-        if(messages.filter((m) => {return m.user._id === maleProfile.uid}).length >= 5 && messages.filter((m) => {return m.user._id === this.state.user.uid}).length >= 5)
-          this.setState({malesReachedMax: true})
-      })
+    if(profile != null) {
+      //Watch for when the female decides on a match
+      FirebaseAPI.watchLikes(profile.uid, (uid) => {
+        if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
+          this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
+        } else 
+          Alert.alert('YOU WERE NOT CHOSEN. BUT I STILL LOVE U')
+      }) 
+    }
   }
 
   logout () {
@@ -121,12 +109,9 @@ export default class Home extends Component {
 
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-    console.log(this.state.malesReachedMax)
+    if(profile.selectedQuestion != -1) {
+      firebase.database().ref().child('users/'+profile.uid).off()
 
-
-    if(profile.selectedQuestion != -1 && this.state.malesReachedMax)
-        return(<View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Time for a decision...</Text>{this.showChat()}</View>)
-    else if(profile.selectedQuestion != -1) {
       if(this.state.question == '')
         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
 
@@ -165,6 +150,8 @@ export default class Home extends Component {
     const isFindingProfiles = (profiles.length < 2)      
 
     if(!isFindingProfiles) {
+      this.watchForQuestion()
+      this.watchForMatch()
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})
 
       return(

@@ -80,6 +80,12 @@ export const watchUser = (key, func) => {
   })
 }
 
+export const watchLikes = (key, func) => {
+  firebase.database().ref().child('relationships/'+key).child('liked').on('value', (snap) => {
+    func(snap.val())
+  })
+}
+
 export const watchUserLocation = (key) => {
   const firebaseRef = firebase.database().ref()
   const geoFire = new GeoFire(firebaseRef.child('geoData/'))
