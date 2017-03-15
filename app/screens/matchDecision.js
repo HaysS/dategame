@@ -28,7 +28,7 @@ export default class MatchDecision extends Component {
   }
 
   chooseProfile(profile) {
-    FirebaseAPI.likeProfile(this.state.user.uid, profile.uid)
+    FirebaseAPI.matchProfile(this.state.user.uid, profile.uid)
     this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
   }
 

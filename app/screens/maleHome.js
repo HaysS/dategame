@@ -75,7 +75,7 @@ export default class MaleHome extends Component {
   componentWillUnmount() {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-    FirebaseAPI.removeLikesWatcher(profile.uid)
+    FirebaseAPI.removeMatchesWatcher(profile.uid)
     firebase.database().ref().child('users/'+profile.uid).off()
   }
 
@@ -100,7 +100,7 @@ export default class MaleHome extends Component {
 
     if(profile != null) {
       //Watch for when the female decides on a match
-      FirebaseAPI.watchLikes(profile.uid, (uid) => {
+      FirebaseAPI.watchMatches(profile.uid, (uid) => {
         if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
         } else {
@@ -117,7 +117,7 @@ export default class MaleHome extends Component {
 
     if(femaleProfile != null && maleProfile != null) {
       //Check for when if the female decided on a match
-      FirebaseAPI.checkLikes(femaleProfile.uid, (uid) => {
+      FirebaseAPI.checkMatches(femaleProfile.uid, (uid) => {
         if(uid != null)
           if (uid[this.state.user.uid] || uid[maleProfile.uid]) {//Will return true if there is a decision
             if(!this.state.hasDecision) {
@@ -133,7 +133,8 @@ export default class MaleHome extends Component {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
     if(profile != null) {
-      FirebaseAPI.checkLikes(profile.uid, (uid) => {
+      FirebaseAPI.checkMatches(profile.uid, (uid) => {
+
         if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
         } else {

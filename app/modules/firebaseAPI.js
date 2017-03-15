@@ -71,15 +71,10 @@ export const unlikeProfile = (userUid, profileUid) => {
   .child(profileUid).set(false)
 }
 
-export const checkMatch = (userUid, profileUid, func) => {
-  firebase.database().ref().child('relationships').child(userUid).child('likedBack')
-  .child(profileUid).once('value', (snap) => func(snap.val()))
-}
-
-export const likeProfile = (userUid, profileUid) => {
-  firebase.database().ref().child('relationships').child(userUid).child('liked')
+export const matchProfile = (userUid, profileUid) => {
+  firebase.database().ref().child('relationships').child(userUid).child('matches')
     .child(profileUid).set(true)
-  firebase.database().ref().child('relationships').child(profileUid).child('likedBack')
+  firebase.database().ref().child('relationships').child(profileUid).child('matches')
     .child(userUid).set(true)
 }
 
@@ -98,24 +93,24 @@ export const removeWatchUser = (key) => {
   firebase.database().ref().child('users/'+key).off()
 }
 
-export const watchLikes = (key, func) => {
-  if(firebase.database().ref().child('relationships/'+key).child('liked').once('value', (snap) => {return snap.val() == undefined})) {
-    firebase.database().ref().child('relationships/'+key).child('liked').on('value', (snap) => {
+export const watchMatches = (key, func) => {
+  if(firebase.database().ref().child('relationships/'+key).child('matches').once('value', (snap) => {return snap.val() == undefined})) {
+    firebase.database().ref().child('relationships/'+key).child('matches').on('value', (snap) => {
       func(snap.val())
     })
   }
 }
 
-export const checkLikes = (key, func) => {
-  firebase.database().ref().child('relationships/'+key).child('liked').once('value', (snap) => {
+export const checkMatches = (key, func) => {
+  firebase.database().ref().child('relationships/'+key).child('matches').once('value', (snap) => {
     if(snap.val() != undefined)
       func(snap.val())
     else
       func(null)})
 }
 
-export const removeLikesWatcher = (key) => {
-  firebase.database().ref().child('relationships/'+key).child('liked').off()
+export const removeMatchesWatcher = (key) => {
+  firebase.database().ref().child('relationships/'+key).child('matches').off()
 }
 
 export const watchUserLocation = (key) => {
@@ -166,29 +161,5 @@ export const findProfiles = (user, func) => {
         //console.log('cancelled geoquery')
         geoQuery.cancel()}})
     })
-  })
-}
-
-const identifyMatches =  (liked, likedBack) => {
-  const likedArray = _.keys(liked).filter(x => liked[x])
-  const likedBackArray = _.keys(likedBack)
-  return _.intersection(likedBackArray,likedArray)
-}
-
-export const getMatches = (uid, func) => {
-  firebase.database().ref().child('relationships').child(uid).once('value', (snap) => {
-    if (snap.val()) {
-      const matches = identifyMatches(snap.val().liked, snap.val().likedBack)
-      func(matches)
-    }
-  })  
-}
-
-export const watchMatches = (uid, func) => {
-  firebase.database().ref().child('relationships').child(uid).on('value', (snap) => {
-    if (snap.val()) {
-      const matches = identifyMatches(snap.val().liked, snap.val().likedBack)
-      func(matches)
-    }
-  })
+  }) 
 }
