@@ -18,19 +18,6 @@ export const updateUser = (uid, key, value) => {
     .update({[key]:value})
 }
 
-
-// const setDemoRelation = (uid) => { // so demo users can test match screen
-//   firebase.database().ref().child('relationships').child(uid).child('likedBack')
-//   .set({
-//     'demoRelation': true,
-//   })
-
-//   firebase.database().ref().child('relationships').child(uid).child('likes')
-//   .set({
-//     'demoRelation': true,
-//   })
-// }
-
 export const getQuestions = (func) => {
   firebase.database().ref().child('questions').once('value', (snap) => {
     if (snap.val()) {
@@ -48,7 +35,6 @@ export const getQuestion = (idString, func) => {
 }
 
 export const mergeUser = (uid, newData) => {
- // setDemoRelation(uid)
   console.log('newData', newData)
   const firebaseRefAtUID = firebase.database().ref().child('users/'+uid)
   return firebaseRefAtUID.once("value").then((snap) => {

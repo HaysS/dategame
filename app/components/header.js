@@ -23,7 +23,6 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     flexDirection:'row',
     height: size,
-    width: width,
     backgroundColor:'transparent',
   }
 })

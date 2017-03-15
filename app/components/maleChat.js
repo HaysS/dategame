@@ -89,7 +89,6 @@ export default class MaleChat extends Component {
     }
   }
 	render() {
-    console.log("Why is this getting called")
 		return (
         <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
           <GiftedChat

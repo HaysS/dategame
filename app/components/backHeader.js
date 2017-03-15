@@ -18,11 +18,11 @@ export default BackHeader = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop:25,
-    justifyContent:'center',
-    flexDirection:'row',
+    marginTop:30,
+    marginLeft: 25,
+    marginRight: 25,
     height: size,
-    width: width,
+    width: size,
     backgroundColor:'transparent',
   }
 })
