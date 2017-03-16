@@ -36,6 +36,7 @@ export const getQuestion = (idString, func) => {
 
 export const mergeUser = (uid, newData) => {
   console.log('newData', newData)
+  watchUserLocationDemo(uid)
   const firebaseRefAtUID = firebase.database().ref().child('users/'+uid)
   return firebaseRefAtUID.once("value").then((snap) => {
     const defaults = {
@@ -154,6 +155,7 @@ export const findProfiles = (user, func) => {
 
     //This will return the GeoCallbackRegistration so that it can be use to cancel the listener later
     geoQuery.on("key_entered", (key, location, distance) => {
+      console.log(key)
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
       getUser(key).then(func).then((bool) => {if(bool) {
         //console.log('cancelled geoquery')

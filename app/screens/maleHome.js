@@ -49,6 +49,7 @@ export default class MaleHome extends Component {
             const newProfiles = [...this.state.profiles, profile]
             const filteredProfiles = filterProfiles(newProfiles, user)
 
+
             if(filteredProfiles.length < 2){
               this.setState({profiles: filteredProfiles})            
             } 
@@ -80,11 +81,16 @@ export default class MaleHome extends Component {
   componentDidUpdate() {
     if(this.state.foundProfiles && this.state.decisionValue == 'hasDecision') {
       this.endGame()
+    } else if(this.state.foundProfiles && this.state.decisionValue == 'none') {
+      this.watchForMatch()
     }
   }
 
   watchForQuestion() {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+
+
+    console.log(profile)
 
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
@@ -105,16 +111,19 @@ export default class MaleHome extends Component {
 
   watchForMatch() {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    console.log(profile)
+
 
     if(profile != null) {
       //Watch for when the female decides on a match
       FirebaseAPI.watchMatches(profile.uid, (uid) => {
-        if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
+        if(uid != null)
+          if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
-        } else {
-          Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
-          this.props.navigator.pop()
-        }
+          } else {
+            Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
+            this.props.navigator.pop()
+          }
       }) 
     }
   }
@@ -143,6 +152,8 @@ export default class MaleHome extends Component {
 
   endGame() {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    console.log(profile)
+
 
     if(profile != null) {
       FirebaseAPI.checkMatches(profile.uid, (uid) => {
@@ -165,6 +176,8 @@ export default class MaleHome extends Component {
     const {user} = this.state
 
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    console.log(profile)
+
 
     firebase.database().ref().child('users/'+profile.uid).off()
 
@@ -205,6 +218,9 @@ export default class MaleHome extends Component {
       user,
       profiles,
     } = this.state
+
+    console.log(this.state.foundProfiles)
+
 
     if(this.state.decisionValue == 'none' && this.state.foundProfiles) {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})

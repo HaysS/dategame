@@ -17,17 +17,20 @@ export default class Loading extends Component {
 
   componentDidMount() {
     firebase.auth().onAuthStateChanged(fbAuth => {
-      if (fbAuth) {                  // user is signed in
+      if (fbAuth) {     // user is signed in and is found in db
         this.firebaseRef.child(fbAuth.uid).on('value', snap => {
           const user = snap.val()
+
           if (user != null) {
             this.firebaseRef.child(fbAuth.uid).off('value')
             this.props.navigator.push(Router.getRoute('menu', {user}))
+          } else if (user == null) {
+            this.firebaseRef.child(fbAuth.uid).off('value')
+            this.props.navigator.push(Router.getRoute('login'))      
           }
-        })
-        
-      } else {                         // no user is signed in
-        this.props.navigator.push(Router.getRoute('login'))
+        }) 
+        } else {                         // no user is signed in
+          this.props.navigator.push(Router.getRoute('login'))      
       }
     })    
   }
