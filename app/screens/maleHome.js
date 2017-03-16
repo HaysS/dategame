@@ -36,7 +36,6 @@ export default class MaleHome extends Component {
   }
 
   componentDidMount() {
-
     FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
@@ -60,7 +59,6 @@ export default class MaleHome extends Component {
           } 
 
           if(this.state.foundProfiles) {
-            if(!this.state.checkDecision)
               this.hasDecision()
 
             return true
@@ -90,7 +88,17 @@ export default class MaleHome extends Component {
 
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
-          FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => this.setState({question: question.text}))
+        if(snap.val().selectedQuestion != -1) {
+          const maleProfile = this.state.profiles.find((user) => {
+              return user.uid != profile.uid
+            })
+
+          FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
+            FirebaseAPI.getUserCb(profile.uid, (user) => {
+              this.setState({question: question.text, profiles: [maleProfile, user]})
+            })
+          })
+        }
       })
     }
   }
@@ -123,7 +131,11 @@ export default class MaleHome extends Component {
             if(!this.state.hasDecision) {
               this.setState({'decisionValue': 'hasDecision'})
             }
+          } else {
+            this.setState({'decisionValue': 'none'})
           }
+        else
+          this.setState({'decisionValue': 'none'})
       })
     } else
       this.setState({'decisionValue': 'none'})
@@ -145,19 +157,8 @@ export default class MaleHome extends Component {
     }
   }
 
-  logout () {
-    this.props.navigator.popToTop()
-    InteractionManager.runAfterInteractions(() => {
-      FirebaseAPI.logoutUser().then(
-        () => console.log('signout successful'),
-        () => console.log('signout not successful'))
-    })
-  }
-
-  nextProfileIndex() {
-    this.setState({
-      profileIndex:this.state.profileIndex+1
-    })
+  menu () {
+    this.props.navigator.pop()
   }
 
   showPrompt() {
@@ -165,16 +166,18 @@ export default class MaleHome extends Component {
 
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-    if(profile.selectedQuestion != -1) {
-      firebase.database().ref().child('users/'+profile.uid).off()
+    firebase.database().ref().child('users/'+profile.uid).off()
 
-      if(this.state.question == '')
-        FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => this.setState({question: question.text}))
-
-      return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-    } else {
+    if(profile.selectedQuestion == -1) {
       this.watchForQuestion()
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+    } else {
+      if(this.state.question == '') 
+         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => {
+              this.setState({question: question.text})
+          })
+
+      return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
     }
   }
 
@@ -202,14 +205,9 @@ export default class MaleHome extends Component {
       user,
       profiles,
     } = this.state
-    
-    if(!(profiles.length < 2))     
-      FirebaseAPI.removeWatchUser(this.state.user.uid)
 
     if(this.state.decisionValue == 'none' && this.state.foundProfiles) {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})
-      // this.watchForQuestion()
-      // this.watchForMatch()
 
       return(
         <View style={{flex: 1}}>
@@ -219,8 +217,8 @@ export default class MaleHome extends Component {
           </TouchableOpacity>
           <View style={styles.container}>
             {this.showPrompt()}
-            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
-              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Logout</Text>
+            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.menu()}>
+              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -235,8 +233,8 @@ export default class MaleHome extends Component {
             <View style={{flex:1, alignItems:'center', justifyContent:'center'}}>
               <ActivityIndicator size="small"/>
             </View>
-            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
-              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Logout</Text>
+            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.menu()}>
+              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -258,31 +256,6 @@ const styles = StyleSheet.create({
     margin: 10, 
     fontSize: 28,
     textAlign: 'center'
-  },
-  promptTouchable: {
-    justifyContent: 'flex-start',
-    alignItems:'center', 
-    height: height/7,
-    borderBottomWidth: 2, 
-    borderColor: 'gray'
-  },
-  containerTop: {
-    flex: 1,
-    marginTop: 5,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: 'lightgray'
-  },
-  containerBottom: {
-    flex: 1,
-    marginTop: 5,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: 'gray'
   },
   nameHeader: {
     width: width/3,

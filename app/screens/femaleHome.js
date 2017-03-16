@@ -32,14 +32,13 @@ export default class Home extends Component {
       profiles: [],
       user: this.props.user,
       question: '',
-      mounted: false,
       malesReachedMax: false,
+      foundProfiles: false,
+      chosenQuestion: '',
     }
   }
 
   componentDidMount() {
-    this.setState({mounted: true})
-
     FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
@@ -47,39 +46,54 @@ export default class Home extends Component {
     FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
     FirebaseAPI.watchUser(this.state.user.uid, (user) => {
       if (user) {
-        this.setState({
-          user: user,
-        })
-
         FirebaseAPI.findProfiles(user, (profile) => {
-          const newProfiles = [...this.state.profiles, profile]
-          const filteredProfiles = filterProfiles(newProfiles, user)
-          this.setState({profiles:filteredProfiles})  
-        })
+
+          if(!this.state.foundProfiles) {
+            const newProfiles = [...this.state.profiles, profile]
+            const filteredProfiles = filterProfiles(newProfiles, user)
+
+            if(filteredProfiles.length < 2){
+              this.setState({profiles: filteredProfiles})            
+            } 
+
+            if(filteredProfiles.length >= 2) {//If there are still less than 2 profiles after filtering
+              this.setState({profiles: filteredProfiles, foundProfiles: true})               
+            }
+          } 
+
+          if(this.state.foundProfiles) {
+            if(!this.state.chosenQuestion) 
+              this.checkForQuestion()
+
+            if(!this.state.malesReachedMax) {
+              this.watchForMaxMessages() 
+            }
+            return true //This will cause the geoQuery to cancel when return
+          }
+
+          return false  //geoQuery keeps listening...
+      })
       }
-    }) 
-
-    this.watchForQuestion()
+    })
   }
 
-  componentWillReceiveProps() {
-    this.setState({mounted: false})
-  }
-
-  componentWillUnmount() {
-    firebase.database().ref().off()
-  }
-
-  watchForQuestion() {
-    const profile = this.state.user.gender == 'male' ? this.state.profiles.find((profile) => {return profile.gender == 'female'}) : this.state.user
-
+   checkForQuestion() {
+    const profile = this.state.user
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
-          console.log('watched complete')
-          FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => this.setState({question: question.text}))
+        if(snap.val().selectedQuestion != -1) {
+          FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
+            FirebaseAPI.getUserCb(profile.uid, (user) => {
+              this.setState({question: question.text, user: user, chosenQuestion: 'true'})
+            })
+          })
+        } else 
+            this.setState({chosenQuestion: 'none'})
       })
-    }
+    } else 
+      this.setState({chosenQuestion: 'none'})
   }
+
 
   watchForMaxMessages() {
       //Sort uid concatenation in order of greatness so every user links to the same chat
@@ -87,7 +101,6 @@ export default class Home extends Component {
       uidArray.sort()
       const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
-      firebase.database().ref().child('users/'+this.state.user.uid).off()
       firebase.database().ref().child('messages').child(chatID)
         .on('value', (snap) => {
         let messages = []
@@ -105,13 +118,32 @@ export default class Home extends Component {
       })
   }
 
-  logout () {
-    this.props.navigator.popToTop()
-    InteractionManager.runAfterInteractions(() => {
-      FirebaseAPI.logoutUser().then(
-        () => console.log('signout successful'),
-        () => console.log('signout not successful'))
-    })
+  checkForMaxMessages() {
+    //Sort uid concatenation in order of greatness so every user links to the same chat
+      const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
+      uidArray.sort()
+      const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+
+      firebase.database().ref().child('users/'+this.state.user.uid).off()
+      firebase.database().ref().child('messages').child(chatID)
+        .once('value').then((snap) => {
+        let messages = []
+        snap.forEach((child) => {
+          messages.push({
+            user: {
+              _id: child.val().sender,
+            }
+          })
+        });
+        const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
+
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
+          this.setState({malesReachedMax: true})
+      })
+  }
+
+  menu () {
+    this.props.navigator.pop()
   }
 
   nextProfileIndex() {
@@ -121,36 +153,27 @@ export default class Home extends Component {
   }
 
   showPrompt() {
-    console.log('Show prompts')
     const {user} = this.state
 
-    if(user.selectedQuestion != -1 && this.state.malesReachedMax) {
+    if(this.state.malesReachedMax && this.state.chosenQuestion == 'true') {
       profiles = this.state.profiles
 
-       return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+       return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
               onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
-              <Text style={styles.promptText}>Messages have run out. Make a decision.</Text>
-            </TouchableOpacity>{this.showChat()}</View>)
-    } else if(user.selectedQuestion != -1) {
-      if(this.state.question == '')
-        FirebaseAPI.getQuestion(user.selectedQuestion, (question) => this.setState({question: question.text}))
-
-      this.watchForMaxMessages()
-
-      return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-              onPress={() => {}}>
-              <Text style={styles.promptText}>{this.state.question}</Text>
-            </TouchableOpacity>{this.showChat()}</View>)
-    } else
-      return(<View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-              onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user}))}}>
-              <Text style={styles.promptText}>Ask Question</Text>
-            </TouchableOpacity>{this.showChat()}</View>)
+                <View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Make a Decision</Text></View></TouchableOpacity>
+                <View style={{flex: 5}}>{this.showChat()}</View>
+              </View>)
+    } else if(this.state.chosenQuestion == 'true') {
+      return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+    } else if (this.state.chosenQuestion == 'none') {
+      return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user}))}}>
+                <View style={{flex: 1}}><Text style={styles.promptText}>Ask Question</Text></View>
+            </TouchableOpacity><View style={{flex: 5}}>{this.showChat()}</View></View>)
+    }
   }
 
   showChat() {
-    console.log('show Chat')
-
     const leftProfile = this.state.profiles[0]
     const rightProfile = this.state.profiles[1]
     
@@ -175,9 +198,7 @@ export default class Home extends Component {
       profiles,
     } = this.state
 
-    const isFindingProfiles = (profiles.length < 2)      
-
-    if(!isFindingProfiles) {
+    if(this.state.foundProfiles && this.state.chosenQuestion != '') {
       const femaleProfile = user
 
       return(
@@ -188,8 +209,8 @@ export default class Home extends Component {
           </TouchableOpacity>
           <View style={styles.container}>
             {this.showPrompt()}
-            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
-              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Logout</Text>
+            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.menu()}>
+              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -204,8 +225,8 @@ export default class Home extends Component {
             <View style={{flex:1, alignItems:'center', justifyContent:'center'}}>
               <ActivityIndicator size="small"/>
             </View>
-            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
-              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Logout</Text>
+            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.menu()}>
+              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -64,9 +64,21 @@ export const matchProfile = (userUid, profileUid) => {
     .child(userUid).set(true)
 }
 
+export const getMatches = (key, func) => {
+  firebase.database().ref().child('relationships/'+key).child('matches').once('value')
+    .then((snap) => {Object.keys(snap.val()).map((key) => {
+      getUser(key).then((user) => {func(user)})})})
+   
+}
+
 export const getUser = (key) => {
   return firebase.database().ref().child('users').child(key).once('value')
     .then((snap) => snap.val())
+}
+
+export const getUserCb = (key, func) => {
+  return firebase.database().ref().child('users').child(key).once('value')
+    .then((snap) => func(snap.val()))
 }
 
 export const watchUser = (key, func) => {
@@ -149,3 +161,4 @@ export const findProfiles = (user, func) => {
     })
   }) 
 }
+
