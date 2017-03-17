@@ -65,6 +65,8 @@ export default class Home extends Component {
             if(!this.state.chosenQuestion) 
               this.checkForQuestion()
 
+            this.checkForMaxMessages()
+
             if(!this.state.malesReachedMax) {
               this.watchForMaxMessages() 
             }
@@ -99,9 +101,9 @@ export default class Home extends Component {
       //Sort uid concatenation in order of greatness so every user links to the same chat
       const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
       uidArray.sort()
-      const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+      const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
-      firebase.database().ref().child('messages').child(chatID)
+      firebase.database().ref().child('games/'+gameID).child('messages')
         .on('value', (snap) => {
         let messages = []
         snap.forEach((child) => {
@@ -113,6 +115,7 @@ export default class Home extends Component {
         });
         const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
 
+
         if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
           this.setState({malesReachedMax: true})
       })
@@ -122,10 +125,10 @@ export default class Home extends Component {
     //Sort uid concatenation in order of greatness so every user links to the same chat
       const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
       uidArray.sort()
-      const chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+      const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
       firebase.database().ref().child('users/'+this.state.user.uid).off()
-      firebase.database().ref().child('messages').child(chatID)
+      firebase.database().ref().child('games/'+gameID).child('messages')
         .once('value').then((snap) => {
         let messages = []
         snap.forEach((child) => {
@@ -137,8 +140,11 @@ export default class Home extends Component {
         });
         const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
 
-        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5) {
+        console.log('called')
+
           this.setState({malesReachedMax: true})
+        }
       })
   }
 

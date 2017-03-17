@@ -31,11 +31,11 @@ export default class FemaleChat extends Component {
     //Sort uid concatenation in order of greatness so every user links to the same chat
     const uidArray = [uid, leftProfileUid, rightProfileUid]
     uidArray.sort()
-    this.chatID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+    this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
   }
 
   watchChat() {
-    firebase.database().ref().child('messages').child(this.chatID)
+    firebase.database().ref().child('games/'+this.gameID).child('messages')
       .orderByChild('createdAt')
       .on('value', (snap) => {
       let messages = []
@@ -59,7 +59,7 @@ export default class FemaleChat extends Component {
 
    componentWillUnmount() {
     console.log('DB OFF')
-    firebase.database().ref().child('messages').child(this.chatID).off()
+    firebase.database().ref().child('games/'+this.gameID).child('messages').off()
   }
 
   componentWillMount() {
@@ -67,7 +67,7 @@ export default class FemaleChat extends Component {
   }
 
   onSend(message) {
-    firebase.database().ref().child('messages').child(this.chatID)
+    firebase.database().ref().child('games/'+this.gameID).child('messages')
       .push({
         text: message[0].text,
         createdAt: new Date().getTime(),
