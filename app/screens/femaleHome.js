@@ -34,7 +34,7 @@ export default class Home extends Component {
       question: '',
       malesReachedMax: false,
       foundProfiles: false,
-      chosenQuestion: '',
+      questionStatus: '',
     }
   }
 
@@ -62,8 +62,8 @@ export default class Home extends Component {
           } 
 
           if(this.state.foundProfiles) {
-            if(!this.state.chosenQuestion) 
-              this.checkForQuestion()
+            if(this.state.questionStatus == '') 
+              this.watchForQuestion()
 
             this.checkForMaxMessages()
 
@@ -79,21 +79,26 @@ export default class Home extends Component {
     })
   }
 
-   checkForQuestion() {
+  componentWillUnmount() {
+    firebase.database().ref().child('users/'+this.state.user.uid).off()
+  }
+
+   watchForQuestion() {
     const profile = this.state.user
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
+        console.log('called')
         if(snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getUserCb(profile.uid, (user) => {
-              this.setState({question: question.text, user: user, chosenQuestion: 'true'})
+              this.setState({question: question.text, user: user, questionStatus: 'hasQuestion'})
             })
           })
         } else 
-            this.setState({chosenQuestion: 'none'})
+            this.setState({questionStatus: 'none'})
       })
     } else 
-      this.setState({chosenQuestion: 'none'})
+      this.setState({questionStatus: 'none'})
   }
 
 
@@ -127,7 +132,8 @@ export default class Home extends Component {
       uidArray.sort()
       const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
-      firebase.database().ref().child('users/'+this.state.user.uid).off()
+      if(this.state.questionStatus == 'hasQuestion')
+        firebase.database().ref().child('users/'+this.state.user.uid).off()
       firebase.database().ref().child('games/'+gameID).child('messages')
         .once('value').then((snap) => {
         let messages = []
@@ -159,7 +165,7 @@ export default class Home extends Component {
   showPrompt() {
     const {user} = this.state
 
-    if(this.state.malesReachedMax && this.state.chosenQuestion == 'true') {
+    if(this.state.malesReachedMax) {
       profiles = this.state.profiles
 
        return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
@@ -167,9 +173,9 @@ export default class Home extends Component {
                 <View style={{flex: 1}}><Text style={styles.promptText}>Messages have run out. Make a Decision</Text></View></TouchableOpacity>
                 <View style={{flex: 5}}>{this.showChat()}</View>
               </View>)
-    } else if(this.state.chosenQuestion == 'true') {
+    } else if(this.state.questionStatus == 'hasQuestion') {
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-    } else if (this.state.chosenQuestion == 'none') {
+    } else if (this.state.questionStatus == 'none') {
       return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
               onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user}))}}>
                 <View style={{flex: 1}}><Text style={styles.promptText}>Ask Question</Text></View>
@@ -202,7 +208,7 @@ export default class Home extends Component {
       profiles,
     } = this.state
 
-    if(this.state.foundProfiles && this.state.chosenQuestion != '') {
+    if(this.state.foundProfiles && this.state.questionStatus != '') {
       const femaleProfile = user
 
       return(

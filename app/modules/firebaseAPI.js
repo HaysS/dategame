@@ -67,8 +67,10 @@ export const matchProfile = (userUid, profileUid) => {
 
 export const getMatches = (key, func) => {
   firebase.database().ref().child('relationships/'+key).child('matches').once('value')
-    .then((snap) => {Object.keys(snap.val()).map((key) => {
-      getUser(key).then((user) => {func(user)})})})
+    .then((snap) => {
+      if(snap.val() != null)
+        Object.keys(snap.val()).map((key) => {
+          getUser(key).then((user) => {func(user)})})})
    
 }
 

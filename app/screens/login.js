@@ -65,7 +65,7 @@ export default class Login extends Component {
 	      <View style={styles.container}>
 	      	<View style={{flex: 1, justifyContent: 'center'}}>
 	      		<Text style={{textAlign: 'center', fontSize: 52, color: 'darkred'}}>
-	      			Welcome to DateGame!
+	      			Welcome to Catchable!
 	      		</Text>
 	      	</View>
 	      	<View style={{flex: 1, justifyContent: 'center'}}>
