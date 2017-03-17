@@ -141,8 +141,6 @@ export default class Home extends Component {
         const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
 
         if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5) {
-        console.log('called')
-
           this.setState({malesReachedMax: true})
         }
       })
