@@ -10,6 +10,7 @@ import {
 } from '@exponent/ex-navigation';
 
 import MenuScreen from './screens/menu'
+import EditProfileScreen from './screens/editProfile'
 import MaleHomeScreen from './screens/maleHome'
 import FemaleHomeScreen from './screens/femaleHome'
 import LoginScreen from './screens/login'
@@ -31,6 +32,7 @@ firebase.initializeApp(firebaseConfig)
 
 export const Router = createRouter(() => ({
   menu: () => MenuScreen,
+  editProfile: () => EditProfileScreen,
   maleHome: () => MaleHomeScreen,
   femaleHome: () => FemaleHomeScreen,
   login: () => LoginScreen,
