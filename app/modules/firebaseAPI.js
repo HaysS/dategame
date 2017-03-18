@@ -84,6 +84,19 @@ export const getUserCb = (key, func) => {
     .then((snap) => func(snap.val()))
 }
 
+//Returns the first game with the given uid
+export const getGameWithKey = (key, func) => {
+  return firebase.database().ref().child('games').once('value')
+    .then((snap) => {
+      if(snap.val() != null)
+        func(Object.keys(snap.val()).find((gameID) => { //Returns true if there is a gameID with this key in the string
+          return gameID.split('-').some((uid) => {
+            return uid == key
+            })
+        }))
+    })
+}
+
 export const watchUser = (key, func) => {
   firebase.database().ref().child('users/'+key).on('value', (snap) => {
     func(snap.val())

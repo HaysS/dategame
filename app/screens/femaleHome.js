@@ -87,7 +87,6 @@ export default class Home extends Component {
     const profile = this.state.user
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
-        console.log('called')
         if(snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getUserCb(profile.uid, (user) => {

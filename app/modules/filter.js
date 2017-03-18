@@ -1,6 +1,8 @@
 import * as _ from 'lodash'
 import moment from 'moment'
 
+import * as FirebaseAPI from './firebaseAPI'
+
 export default filterProfiles = (profiles, user) => {
   const uniqueProfiles = _.uniqBy(profiles, 'uid') //get unique profiles
 
@@ -17,10 +19,15 @@ export default filterProfiles = (profiles, user) => {
       !isUser
     )
   }).map((profile, index) => {
+    FirebaseAPI.getGameWithKey(profile.uid, (gameID) => {
+      console.log(gameID)
+    })
+
     if(user.gender == 'female' && counter <= 2 && profile.gender == 'male') {
       counter++
       return profile
     }
+
     if (user.gender == 'male' && !passedMaleProfile && profile.gender == 'male') {
       passedMaleProfile = true
       return profile
