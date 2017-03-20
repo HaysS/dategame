@@ -86,7 +86,7 @@ export const getUserCb = (key, func) => {
 
 //Returns the first game with the given uid
 export const getGameWithKey = (key, func) => {
-  return firebase.database().ref().child('games').once('value')
+  firebase.database().ref().child('games').once('value')
     .then((snap) => {
       if(snap.val() != null)
         func(Object.keys(snap.val()).find((gameID) => { //Returns true if there is a gameID with this key in the string
@@ -170,7 +170,6 @@ export const findProfiles = (user, func) => {
 
     //This will return the GeoCallbackRegistration so that it can be use to cancel the listener later
     geoQuery.on("key_entered", (key, location, distance) => {
-      console.log(key)
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
       getUser(key).then(func).then((bool) => {if(bool) {
         //console.log('cancelled geoquery')

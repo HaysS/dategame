@@ -31,11 +31,9 @@ export default class MaleHome extends Component {
       user: this.props.user,
       question: '',
       foundProfiles: false,
-      decisionValue: '',
+      questionStatus: '',
     }
-  }
 
-  componentDidMount() {
     FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
@@ -46,43 +44,55 @@ export default class MaleHome extends Component {
         FirebaseAPI.findProfiles(user, (profile) => {
 
           if(!this.state.foundProfiles) {
-            const newProfiles = [...this.state.profiles, profile]
-            const filteredProfiles = filterProfiles(newProfiles, user)
+            filterProfile(profile, user, (filteredProfile) => {
 
+              if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
+                if(this.state.profiles.length < 2) {//If there are still less than 2 profiles after filtering
+                  this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})               
+                }
 
-            if(filteredProfiles.length < 2){
-              this.setState({profiles: filteredProfiles})            
-            } 
-
-            if(filteredProfiles.length >= 2) {//If there are still less than 2 profiles after filtering
-              this.setState({profiles: filteredProfiles, foundProfiles: true})               
-            }
+                if(this.state.profiles.length < 1) {
+                  this.setState({profiles: [...this.state.profiles, filteredProfile]})            
+                } 
+              }
+            })
           } 
 
-          if(this.state.foundProfiles) {
-              this.hasDecision()
 
-            return true
-          }
+          if(this.state.foundProfiles) 
+            return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
+      
 
-          return false
+          return false  //geoQuery keeps listening...
       })
       }
     })
   }
 
   componentWillUnmount() {
-    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    //If no profiles are stored, an error will be thrown when you try to .find() one
+    if(this.state.profiles.length > 0)  {
+      const profile = this.state.profiles.find((profile) => {return profile != null ? profile == 'female' : null})
 
-    FirebaseAPI.removeMatchesWatcher(profile.uid)
-    firebase.database().ref().child('users/'+profile.uid).off()
+      if(profile != null) {
+        FirebaseAPI.removeMatchesWatcher(profile.uid)
+        firebase.database().ref().child('users/'+profile.uid).off()
+      }
+    }
   }
 
   componentDidUpdate() {
-    if(this.state.foundProfiles && this.state.decisionValue == 'hasDecision') {
-      this.endGame()
-    } else if(this.state.foundProfiles && this.state.decisionValue == 'none') {
-      this.watchForMatch()
+    if(this.state.foundProfiles) {
+      if(this.state.questionStatus == '') {
+        console.log(this.state.profiles)
+        this.watchForQuestion()
+      } 
+
+      if(this.state.questionStatus == 'hasDecision') {
+        this.endGame()
+      } else if(this.state.questionStatus == 'none') {
+        this.watchForMatch()
+      }
     }
   }
 
@@ -92,16 +102,13 @@ export default class MaleHome extends Component {
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
         if(snap.val().selectedQuestion != -1) {
-          const maleProfile = this.state.profiles.find((user) => {
-              return user.uid != profile.uid
-            })
-
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getUserCb(profile.uid, (user) => {
-              this.setState({question: question.text, profiles: [maleProfile, user]})
+              this.setState({question: question.text, user: user, questionStatus: 'hasQuestion'})
             })
           })
-        }
+        } else 
+            this.setState({questionStatus: 'none'})
       })
     }
   }
@@ -121,28 +128,6 @@ export default class MaleHome extends Component {
           }
       }) 
     }
-  }
-
-  hasDecision() {
-    const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
-    const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
-
-    if(femaleProfile != null && maleProfile != null) {
-      //Check for when if the female decided on a match
-      FirebaseAPI.checkMatches(femaleProfile.uid, (uid) => {
-        if(uid != null)
-          if (uid[this.state.user.uid] || uid[maleProfile.uid]) {//Will return true if there is a decision
-            if(!this.state.hasDecision) {
-              this.setState({'decisionValue': 'hasDecision'})
-            }
-          } else {
-            this.setState({'decisionValue': 'none'})
-          }
-        else
-          this.setState({'decisionValue': 'none'})
-      })
-    } else
-      this.setState({'decisionValue': 'none'})
   }
 
   endGame() {
@@ -173,7 +158,6 @@ export default class MaleHome extends Component {
     firebase.database().ref().child('users/'+profile.uid).off()
 
     if(profile.selectedQuestion == -1) {
-      this.watchForQuestion()
       return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
     } else {
       if(this.state.question == '') 
@@ -210,7 +194,7 @@ export default class MaleHome extends Component {
       profiles,
     } = this.state
 
-    if(this.state.decisionValue == 'none' && this.state.foundProfiles) {
+    if(this.state.foundProfiles && this.state.questionStatus != '') {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})
 
       return(

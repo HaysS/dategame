@@ -3,41 +3,38 @@ import moment from 'moment'
 
 import * as FirebaseAPI from './firebaseAPI'
 
-export default filterProfiles = (profiles, user) => {
-  const uniqueProfiles = _.uniqBy(profiles, 'uid') //get unique profiles
-
+export default filterProfile = (profile, user, func) => {
   let passedFemaleProfile = false
   let passedMaleProfile = false
-  let counter = 0
-  const filteredProfiles = uniqueProfiles.filter((profile) => {
-    // console.log("Profile:")
-    // console.log(profile)
-    
-    const isUser = profile.uid != null ? user.uid === profile.uid : false
+  let counter = 0 
 
-    return (
-      !isUser
-    )
-  }).map((profile, index) => {
+  // console.log("Profile:")
+  // console.log(profile)
+  
+  const isUser = profile.uid != null ? user.uid === profile.uid : false
+
+  if(!isUser)
     FirebaseAPI.getGameWithKey(profile.uid, (gameID) => {
-      console.log(gameID)
+      if(gameID == null)
+        func(filterWithPreferences(profile, user))
     })
+}
 
-    if(user.gender == 'female' && counter <= 2 && profile.gender == 'male') {
-      counter++
+
+const filterWithPreferences = (profile, user) => {
+    if(user.gender == 'female' && profile.gender == 'male') {
       return profile
     }
 
-    if (user.gender == 'male' && !passedMaleProfile && profile.gender == 'male') {
-      passedMaleProfile = true
-      return profile
+    if (user.gender == 'male') {
+      if(user.needsMale && profile.gender == 'male') {
+        FirebaseAPI.updateUser(user.uid, 'needsMale', false)
+        return profile
+      }
+
+      if(user.needsFemale && profile.gender == 'female') {
+        FirebaseAPI.updateUser(user.uid, 'needsFemale', false)
+        return profile
+      }
     }
-
-    if(user.gender == 'male' && !passedFemaleProfile && profile.gender == 'female') {
-      passedFemaleProfile = true
-      return profile
-    } 
-  })
-
-  return filteredProfiles.filter((profile) => {return (profile != undefined)})
 }

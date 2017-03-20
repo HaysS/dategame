@@ -32,13 +32,11 @@ export default class Home extends Component {
       profiles: [],
       user: this.props.user,
       question: '',
+      questionStatus: '',
       malesReachedMax: false,
       foundProfiles: false,
-      questionStatus: '',
     }
-  }
 
-  componentDidMount() {
     FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
 
     FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
@@ -49,29 +47,26 @@ export default class Home extends Component {
         FirebaseAPI.findProfiles(user, (profile) => {
 
           if(!this.state.foundProfiles) {
-            const newProfiles = [...this.state.profiles, profile]
-            const filteredProfiles = filterProfiles(newProfiles, user)
+            filterProfile(profile, user, (filteredProfile) => {
+              if(filteredProfile != null) {
+                if(this.state.profiles.length < 2) {
+                  this.setState({profiles: [...this.state.profiles, filteredProfile]})            
+                } 
 
-            if(filteredProfiles.length < 2){
-              this.setState({profiles: filteredProfiles})            
-            } 
+                if(this.state.profiles.length >= 2) {//If there are still less than 2 profiles after filtering
+                  this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})               
+                }
+              }
 
-            if(filteredProfiles.length >= 2) {//If there are still less than 2 profiles after filtering
-              this.setState({profiles: filteredProfiles, foundProfiles: true})               
-            }
+              console.log(this.state.profiles)
+              console.log('callback done')
+            })
           } 
 
-          if(this.state.foundProfiles) {
-            if(this.state.questionStatus == '') 
-              this.watchForQuestion()
 
-            this.checkForMaxMessages()
-
-            if(!this.state.malesReachedMax) {
-              this.watchForMaxMessages() 
-            }
-            return true //This will cause the geoQuery to cancel when return
-          }
+          if(this.state.foundProfiles) 
+            return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
+      
 
           return false  //geoQuery keeps listening...
       })
@@ -79,12 +74,26 @@ export default class Home extends Component {
     })
   }
 
+  componentDidUpdate() {
+    if(this.state.foundProfiles) {
+      if(this.state.questionStatus == '') 
+        this.watchForQuestion()
+
+      this.checkForMaxMessages()
+
+      if(!this.state.malesReachedMax) {
+        this.watchForMaxMessages() 
+      }
+    }
+  }
+
   componentWillUnmount() {
     firebase.database().ref().child('users/'+this.state.user.uid).off()
   }
 
-   watchForQuestion() {
+  watchForQuestion() {
     const profile = this.state.user
+
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
         if(snap.val().selectedQuestion != -1) {
@@ -96,8 +105,7 @@ export default class Home extends Component {
         } else 
             this.setState({questionStatus: 'none'})
       })
-    } else 
-      this.setState({questionStatus: 'none'})
+    }
   }
 
 
@@ -207,6 +215,11 @@ export default class Home extends Component {
       profiles,
     } = this.state
 
+    console.log('profiles in render')
+    console.log(profiles)
+    console.log(this.state.foundProfiles)
+    console.log(this.state.questionStatus)
+
     if(this.state.foundProfiles && this.state.questionStatus != '') {
       const femaleProfile = user
 
@@ -224,12 +237,11 @@ export default class Home extends Component {
           </View>
         </View>
       ) 
-    } else
+    } else 
       return(
         <View style={{flex: 1}}>
-          <TouchableOpacity style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}
-            onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: user}))}}>
-          </TouchableOpacity>
+          <View style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
+          </View>
           <View style={styles.container}>
             <View style={{flex:1, alignItems:'center', justifyContent:'center'}}>
               <ActivityIndicator size="small"/>
