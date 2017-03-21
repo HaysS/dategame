@@ -42,9 +42,12 @@ export default class CurrentGames extends Component {
   }
 
   getProfileNamesFromGame(game) {
-    return game.names.map((uid) => {
-      if(uid != this.state.user.uid)
-        return uid
+    return game.profilesInfo.map((profile) => {
+      if(profile.uid != this.state.user.uid) 
+        return profile.name
+    }).filter((name) => {
+      if(name != null)
+        return name
     })
   }
 
@@ -67,7 +70,6 @@ export default class CurrentGames extends Component {
 	        <View style={styles.container}>  
 	          {
 	           	this.state.games.map((game) => {
-                console.log('called')
                 const names = this.getProfileNamesFromGame(game)
 
                 return (
@@ -97,7 +99,7 @@ export default class CurrentGames extends Component {
             </TouchableOpacity>
           </View>
           <View style={styles.container}>  
-            <TouchableOpacity onPress={() => {this.findNewGame()}} 
+            <TouchableOpacity onPress={() => {this.startNewGame()}} 
             key={"newgame-touchable"} >
               <View style={styles.game}  key={"newgame-container"}>
                 <Text style={styles.name} key={'newgame-name'}>Start a New Game</Text>

@@ -27,7 +27,9 @@ export default class MaleChat extends Component {
     const femaleProfileUid = this.props.femaleProfile.uid
     const uid = this.props.user.uid
 
-    const namesArray = [this.props.maleProfile.first_name, this.props.femaleProfile.first_name, this.props.user.first_name]
+    const profileInfoArray = [{'name': this.props.maleProfile.first_name, 'uid': this.props.maleProfile.uid}, 
+                              {'name': this.props.femaleProfile.first_name, 'uid': this.props.femaleProfile.uid}, 
+                              {'name': this.props.user.first_name, 'uid': this.props.user.uid}]
 
     //Sort uid concatenation in order of greatness so every user links to the same chat
     const uidArray = [uid, maleProfileUid, femaleProfileUid]
@@ -36,7 +38,7 @@ export default class MaleChat extends Component {
     uidArray.sort()
     this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
-    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, 'names': namesArray})
+    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, profilesInfo: profileInfoArray})
 
   }
 
