@@ -80,8 +80,6 @@ export const getUser = (key) => {
 }
 
 export const getUserCb = (key, func) => {
-  console.log('getUserCb')
-  console.log(key)
   firebase.database().ref().child('users').child(key).once('value')
     .then((snap) => func(snap.val()))
 }

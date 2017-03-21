@@ -15,6 +15,8 @@ import {
 import Header from '../components/header'
 import Matching from '../components/matching'
 import MaleChat from '../components/maleChat'
+import FemaleChat from '../components/femaleChat'
+
 
 import {Router} from '../../app'
 import * as firebase from 'firebase'
@@ -32,25 +34,31 @@ export default class Game extends Component {
       profiles: [],
       question: '',
       questionStatus: '',
+      foundProfiles: false,
+      malesReachedMax: false,
     }
 
-    FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
+    if(this.state.user.gender == 'male') {  
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', true)
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
+    }
+    else if(this.state.user.gender == 'female') {
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
+      FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
+    }
 
-    FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
+    
+    this.state.game.id.split('-').map((uid) => {
+      if(uid != this.state.user.uid){
+        FirebaseAPI.getUserCb(uid, (profile) => {
+          if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
+            this.setState({profiles: [...this.state.profiles, profile], foundProfiles: true})               
+          }
 
-    FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
-    FirebaseAPI.watchUser(this.state.user.uid, (user) => {
-      if (user) {
-        console.log('showingingin')
-        console.log(this.state.game.id)
-          this.state.game.id.split('-').map((uid) => {
-            if(uid != this.state.user.uid){
-              FirebaseAPI.getUserCb(uid, (profile) => {
-                newProfiles = [...this.state.profiles, profile]
-                this.setState({profiles: newProfiles})
-              })
-            }
-          })
+          if(this.state.profiles.length < 1) {
+            this.setState({profiles: [...this.state.profiles, profile]})            
+          } 
+        })
       }
     })
   }
@@ -69,10 +77,14 @@ export default class Game extends Component {
 
   componentDidUpdate() {
     if(this.state.foundProfiles) {
-      if(this.state.questionStatus == '') {
-        console.log(this.state.profiles)
+      if(this.state.questionStatus == '')
         this.watchForQuestion()
-      } 
+
+      if(this.state.user.gender == 'female') {
+        if(!this.state.malesReachedMax) {
+          this.watchForMaxMessages() 
+        }
+      }
 
       if(this.state.questionStatus == 'hasDecision') {
         this.endGame()
@@ -83,14 +95,18 @@ export default class Game extends Component {
   }
 
   watchForQuestion() {
-    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    const user = this.state.user
+    const profile = user.gender != 'female' ? this.state.profiles.find((profile) => {return profile.gender == 'female'}) : user
 
     if(profile != null) {
       firebase.database().ref().child('users/'+profile.uid).on('value', (snap) => {
         if(snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
-            FirebaseAPI.getUserCb(profile.uid, (user) => {
-              this.setState({question: question.text, user: user, questionStatus: 'hasQuestion'})
+            FirebaseAPI.getUserCb(profile.uid, (profile) => {
+              if(user.gender == 'female')
+                this.setState({question: question.text, user: profile, questionStatus: 'hasQuestion'})
+              else if(user.gender == 'male')
+                this.setState({question: question.text, questionStatus: 'hasQuestion'})
             })
           })
         } else 
@@ -116,6 +132,30 @@ export default class Game extends Component {
     }
   }
 
+  watchForMaxMessages() {
+      //Sort uid concatenation in order of greatness so every user links to the same chat
+      const uidArray = [this.state.profiles[0].uid, this.state.profiles[1].uid, this.state.user.uid]
+      uidArray.sort()
+      const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+
+      firebase.database().ref().child('games/'+gameID).child('messages')
+        .on('value', (snap) => {
+        let messages = []
+        snap.forEach((child) => {
+          messages.push({
+            user: {
+              _id: child.val().sender,
+            }
+          })
+        });
+        const maleProfiles = this.state.profiles.filter((profile) => {return profile.gender == 'male'})
+
+
+        if(messages.filter((m) => {return m.user._id === maleProfiles[0].uid}).length >= 5 && messages.filter((m) => {return m.user._id === maleProfiles[1].uid}).length >= 5)
+          this.setState({malesReachedMax: true})
+      })
+  }
+  
   endGame() {
     const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
@@ -139,39 +179,77 @@ export default class Game extends Component {
   showPrompt() {
     const {user} = this.state
 
-    const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    if(user.gender == 'male') {
+      const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-    firebase.database().ref().child('users/'+profile.uid).off()
+      firebase.database().ref().child('users/'+profile.uid).off()
 
-    if(profile.selectedQuestion == -1) {
-      return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-    } else {
-      if(this.state.question == '') 
-         FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => {
-              this.setState({question: question.text})
-          })
+      if(profile.selectedQuestion == -1) {
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+      } else {
+        if(this.state.question == '') 
+           FirebaseAPI.getQuestion(profile.selectedQuestion, (question) => {
+                this.setState({question: question.text})
+            })
 
-      return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+      }
+    } else if(user.gender == 'female') {
+      if(this.state.malesReachedMax) {
+        console.log('males have reached max')
+        profiles = this.state.profiles
+
+         return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+                onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
+                  <Text style={styles.promptText}>Messages have run out. Make a Decision</Text></TouchableOpacity></View>
+                  <View style={{flex: 5}}>{this.showChat()}</View>
+                </View>)
+      } else if(this.state.questionStatus == 'hasQuestion') {
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
+      } else if (this.state.questionStatus == 'none') {
+        return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
+                onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user}))}}>
+                  <View style={{flex: 1}}><Text style={styles.promptText}>Ask Question</Text></View>
+              </TouchableOpacity><View style={{flex: 5}}>{this.showChat()}</View></View>)
+      }
     }
   }
 
   showChat() {
-    const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
-    const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+    if(this.state.user.gender == 'male') {
+      const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
+      const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
-    return(<View style={styles.container}>
-             <View style={{flexDirection: 'row', justifyContent: 'center',}}>
-                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
-                  <Text style={styles.name}>{this.props.user.first_name}</Text>
+      return(<View style={styles.container}>
+               <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
+                    <Text style={styles.name}>{this.props.user.first_name}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
+                    <Text style={styles.name}>{maleProfile.first_name}</Text>
+                  </TouchableOpacity>
+                </View>
+                <MaleChat user={this.state.user}  maleProfile={maleProfile} femaleProfile={femaleProfile} />
+              </View>)
+    } else if(this.state.user.gender == 'female') {
+      const leftProfile = this.state.profiles[0]
+      const rightProfile = this.state.profiles[1]
+      
+      return(<View style={styles.container}>
+              <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
+                  <Text style={styles.name}>{leftProfile.first_name}</Text>
                 </TouchableOpacity>
                 <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
-                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
-                  <Text style={styles.name}>{maleProfile.first_name}</Text>
+                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
+                  <Text style={styles.name}>{rightProfile.first_name}</Text>
                 </TouchableOpacity>
               </View>
-              <MaleChat user={this.state.user}  maleProfile={maleProfile} femaleProfile={femaleProfile} />
+              <FemaleChat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
+  }
 
 
   render() {
@@ -180,12 +258,8 @@ export default class Game extends Component {
       profiles,
     } = this.state
 
-    
-    console.log('I love u')
-    console.log(this.state.profiles)
-
     if(this.state.foundProfiles && this.state.questionStatus != '') {
-      const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})
+      const femaleProfile = user.gender != 'female' ? this.state.profiles.find((profile) => {return (profile.gender == 'female')}) : user
 
       return(
         <View style={{flex: 1}}>

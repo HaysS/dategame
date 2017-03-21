@@ -38,7 +38,7 @@ export default class MaleChat extends Component {
     uidArray.sort()
     this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
-    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, profilesInfo: profileInfoArray})
+    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, 'profilesInfo': profileInfoArray})
 
   }
 
@@ -69,8 +69,6 @@ export default class MaleChat extends Component {
 
       this.setState({messages})
     })
-
-    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID})
   }
 
 

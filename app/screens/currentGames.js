@@ -35,10 +35,7 @@ export default class CurrentGames extends Component {
   }
 
   openGame(game) {
-    if(this.state.user.gender == 'male')
-      this.props.navigator.push(Router.getRoute('game', {user: this.state.user, game: game}))
-    else if(this.state.user.gender == 'female')
-      this.props.navigator.push(Router.getRoute('femaleHome', {user: this.state.user}))
+    this.props.navigator.push(Router.getRoute('game', {user: this.state.user, game: game}))
   }
 
   getProfileNamesFromGame(game) {
