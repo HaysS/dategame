@@ -160,7 +160,7 @@ export default class Home extends Component {
   }
 
   menu () {
-    this.props.navigator.pop()
+    this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
   }
 
   nextProfileIndex() {

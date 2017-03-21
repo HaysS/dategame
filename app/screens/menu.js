@@ -40,13 +40,6 @@ export default class Match extends Component {
     })
   }
 
-  navigateHome() {
-    if(this.state.user.gender == 'male')
-      this.props.navigator.push(Router.getRoute('maleHome', {'user': this.state.user}))
-    else if(this.state.user.gender == 'female')
-      this.props.navigator.push(Router.getRoute('femaleHome', {'user': this.state.user}))
-  }
-
 
   render() {
     const user = this.state.user
@@ -65,8 +58,8 @@ export default class Match extends Component {
           <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('editProfile', {profile: this.state.user}))}}>
             <Text style={styles.menuItem}>Edit Profile</Text> 
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {this.navigateHome()}}>
-            <Text style={styles.menuItem}>Play Game</Text>
+          <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('currentGames', {'user': this.state.user}))}}>
+            <Text style={styles.menuItem}>Play Games</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('matches', {'user': this.state.user}))}}>
             <Text style={styles.menuItem}>Matches</Text>

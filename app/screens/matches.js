@@ -16,7 +16,7 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 
 const {height, width} = Dimensions.get('window');
 
-export default class Profile extends Component {
+export default class Matches extends Component {
 	componentWillMount() {
 	    this.state = { 
 	      profiles: [],
@@ -63,7 +63,7 @@ export default class Profile extends Component {
           </View>
           <View style={styles.container}>  
             <View style={styles.match}>
-              <Text style={styles.name}>No matches yet, play more rounds!</Text>
+              <Text style={styles.name}>No matches yet, play more games!</Text>
             </View>
           </View>
         </View>)
@@ -72,7 +72,6 @@ export default class Profile extends Component {
 
 const styles = StyleSheet.create({
   container: {
-  	flex: 8,
     height:height,
     width:width,
     backgroundColor:'white',

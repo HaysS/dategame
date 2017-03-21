@@ -24,13 +24,13 @@ import filterProfiles from '../modules/filter'
 
 const {height, width} = Dimensions.get('window');
 
-export default class MaleHome extends Component {
+export default class Game extends Component {
   componentWillMount() {
     this.state = { 
-      profiles: [],
+      game: this.props.game,
       user: this.props.user,
+      profiles: [],
       question: '',
-      foundProfiles: false,
       questionStatus: '',
     }
 
@@ -41,30 +41,16 @@ export default class MaleHome extends Component {
     FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
     FirebaseAPI.watchUser(this.state.user.uid, (user) => {
       if (user) {
-        FirebaseAPI.findProfiles(user, (profile) => {
-
-          if(!this.state.foundProfiles) {
-            filterProfile(profile, user, (filteredProfile) => {
-
-              if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
-                if(this.state.profiles.length < 2) {//If there are still less than 2 profiles after filtering
-                  this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})               
-                }
-
-                if(this.state.profiles.length < 1) {
-                  this.setState({profiles: [...this.state.profiles, filteredProfile]})            
-                } 
-              }
-            })
-          } 
-
-
-          if(this.state.foundProfiles) 
-            return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
-      
-
-          return false  //geoQuery keeps listening...
-      })
+        console.log('showingingin')
+        console.log(this.state.game.id)
+          this.state.game.id.split('-').map((uid) => {
+            if(uid != this.state.user.uid){
+              FirebaseAPI.getUserCb(uid, (profile) => {
+                newProfiles = [...this.state.profiles, profile]
+                this.setState({profiles: newProfiles})
+              })
+            }
+          })
       }
     })
   }
@@ -104,7 +90,7 @@ export default class MaleHome extends Component {
         if(snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getUserCb(profile.uid, (user) => {
-              this.setState({question: question.text, profile: user, questionStatus: 'hasQuestion'})
+              this.setState({question: question.text, user: user, questionStatus: 'hasQuestion'})
             })
           })
         } else 
@@ -121,10 +107,10 @@ export default class MaleHome extends Component {
       FirebaseAPI.watchMatches(profile.uid, (uid) => {
         if(uid != null)
           if (uid[this.state.user.uid]) { //Will return true if there is a match, something other than true otherwise
-            this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
+          this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
           } else {
             Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
-            this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+            this.props.navigator.pop()
           }
       }) 
     }
@@ -140,14 +126,14 @@ export default class MaleHome extends Component {
           this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
         } else {
           Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
-          this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+          this.props.navigator.pop()
         }
       })
     }
   }
 
   menu () {
-    this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+    this.props.navigator.pop()
   }
 
   showPrompt() {
@@ -193,6 +179,10 @@ export default class MaleHome extends Component {
       user,
       profiles,
     } = this.state
+
+    
+    console.log('I love u')
+    console.log(this.state.profiles)
 
     if(this.state.foundProfiles && this.state.questionStatus != '') {
       const femaleProfile = this.state.profiles.find((profile) => {return (profile.gender == 'female')})

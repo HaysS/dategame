@@ -80,8 +80,18 @@ export const getUser = (key) => {
 }
 
 export const getUserCb = (key, func) => {
-  return firebase.database().ref().child('users').child(key).once('value')
+  console.log('getUserCb')
+  console.log(key)
+  firebase.database().ref().child('users').child(key).once('value')
     .then((snap) => func(snap.val()))
+}
+
+export const getGame = (key, func) => {
+   firebase.database().ref().child('games').child(key).once('value')
+    .then((snap) => {
+      if(snap.val() != null)
+        func(snap.val())
+    })
 }
 
 //Returns the first game with the given uid
@@ -94,6 +104,20 @@ export const getGameWithKey = (key, func) => {
             return uid == key
             })
         }))
+    })
+}
+
+//Returns the first game with the given uid
+export const getGamesWithKey = (key, func) => {
+  firebase.database().ref().child('games').once('value')
+    .then((snap) => {
+      if(snap.val() != null)
+        Object.keys(snap.val()).map((game) => {
+          if(game != undefined) {
+            if(game.split('-').some((uid) => {return uid == key}))
+              getGame(game, func)       
+          }
+        })
     })
 }
 

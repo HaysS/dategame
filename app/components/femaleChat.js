@@ -28,10 +28,14 @@ export default class FemaleChat extends Component {
     const rightProfileUid = this.props.secondProfile.uid
     const uid = this.props.user.uid
 
+    const namesArray = [this.props.maleProfile.first_name, this.props.femaleProfile.first_name, this.props.user.first_name]
+
     //Sort uid concatenation in order of greatness so every user links to the same chat
     const uidArray = [uid, leftProfileUid, rightProfileUid]
     uidArray.sort()
     this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+
+    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, 'names': namesArray})
   }
 
   watchChat() {

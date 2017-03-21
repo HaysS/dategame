@@ -20,6 +20,8 @@ import QuestionsScreen from './screens/questions'
 import DecisionScreen from './screens/matchDecision'
 import MatchesScreen from './screens/matches'
 import MatchScreen from './screens/match'
+import CurrentGames from './screens/currentGames'
+import Game from './screens/game'
 
 import * as firebase from 'firebase'
 
@@ -37,6 +39,8 @@ export const Router = createRouter(() => ({
   femaleHome: () => FemaleHomeScreen,
   login: () => LoginScreen,
   profile: () => ProfileScreen,
+  currentGames: () => CurrentGames,
+  game: () => Game,
   loading: () => LoadingScreen,
   questions: () => QuestionsScreen,
   matchDecision: () => DecisionScreen,
