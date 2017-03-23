@@ -84,12 +84,18 @@ export const getUserCb = (key, func) => {
     .then((snap) => func(snap.val()))
 }
 
+
 export const getGame = (key, func) => {
    firebase.database().ref().child('games').child(key).once('value')
     .then((snap) => {
       if(snap.val() != null)
         func(snap.val())
     })
+}
+
+export const deleteGame = (key) => {
+  //firebase.database().ref().child('games').child(key).remove()
+  console.log('remove game')
 }
 
 //Returns the first game with the given uid

@@ -27,9 +27,9 @@ export default class MaleChat extends Component {
     const femaleProfileUid = this.props.femaleProfile.uid
     const uid = this.props.user.uid
 
-    const profileInfoArray = [{'name': this.props.maleProfile.first_name, 'uid': this.props.maleProfile.uid}, 
-                              {'name': this.props.femaleProfile.first_name, 'uid': this.props.femaleProfile.uid}, 
-                              {'name': this.props.user.first_name, 'uid': this.props.user.uid}]
+    const profileInfoArray = [{'name': this.props.maleProfile.first_name, 'uid': this.props.maleProfile.uid, 'matched': false}, 
+                              {'name': this.props.femaleProfile.first_name, 'uid': this.props.femaleProfile.uid, 'matched': false}, 
+                              {'name': this.props.user.first_name, 'uid': this.props.user.uid, 'matched': false}]
 
     //Sort uid concatenation in order of greatness so every user links to the same chat
     const uidArray = [uid, maleProfileUid, femaleProfileUid]
