@@ -13,14 +13,10 @@ import {
 } from 'react-native'
 
 import Header from '../components/header'
-import Matching from '../components/matching'
-import MaleChat from '../components/maleChat'
 
 import {Router} from '../../app'
 import * as firebase from 'firebase'
 import * as FirebaseAPI from '../modules/firebaseAPI'
-
-import filterProfiles from '../modules/filter'
 
 const {height, width} = Dimensions.get('window');
 

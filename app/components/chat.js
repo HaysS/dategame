@@ -18,22 +18,28 @@ import { GiftedChat } from 'react-native-gifted-chat'
 
 const ratio = PixelRatio.get()
 
-export default class MaleChat extends Component {
+export default class Chat extends Component {
   constructor(props) {
     super(props);
-    this.state = {messages: [], reachedMax: false}
+    this.state = {
+      user: this.props.user,
+      messages: [], 
+      reachedMax: false
+    }
 
-    const maleProfileUid = this.props.maleProfile.uid
-    const femaleProfileUid = this.props.femaleProfile.uid
-    const uid = this.props.user.uid
+    const profileArray = [this.props.firstProfile, this.props.secondProfile, this.props.user]
+    const maleProfiles = profileArray.filter((profile) => { return profile.gender == 'male'})
+    const femaleProfile = profileArray.find((profile) => {return profile.gender == 'female'})
 
-    const profileInfoArray = [{'name': this.props.maleProfile.first_name, 'uid': this.props.maleProfile.uid, 'matched': false}, 
-                              {'name': this.props.femaleProfile.first_name, 'uid': this.props.femaleProfile.uid, 'matched': false}, 
-                              {'name': this.props.user.first_name, 'uid': this.props.user.uid, 'matched': false}]
+    const profileInfoArray = [{'name': maleProfiles[0].first_name, 'uid': maleProfiles[0].uid, 'matched': false}, 
+                              {'name': maleProfiles[1].first_name, 'uid': maleProfiles[1].uid, 'matched': false}, 
+                              {'name': femaleProfile.first_name, 'uid': femaleProfile.uid, 'matched': false, 'selectedQuestion': -1}].sort((a, b) => {
+                                return a.uid.localeCompare(b.uid)
+                              })
 
     //Sort uid concatenation in order of greatness so every user links to the same chat
-    const uidArray = [uid, maleProfileUid, femaleProfileUid]
-    console.log(uid)
+    const uidArray = profileInfoArray.map((profile) => {return profile.uid})
+    console.log(uidArray)
 
     uidArray.sort()
     this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
@@ -61,13 +67,16 @@ export default class MaleChat extends Component {
       });
       messages.reverse()
 
-      const uid = this.props.user.uid
+      if(this.state.user.gender == 'male') {
 
-      if(messages.filter((m) => {return m.user._id === uid}).length >= 5) {
-          this.setState({reachedMax: true})
-      }
+        const uid = this.state.user.uid
 
-      this.setState({messages})
+        if(messages.filter((m) => {return m.user._id === uid}).length >= 5)
+          this.setState({reachedMax: true, messages: messages})
+        else
+          this.setState({messages})
+      } else if(this.state.user.gender == 'female')
+        this.setState({messages})
     })
   }
 
@@ -81,7 +90,16 @@ export default class MaleChat extends Component {
   }
 
   onSend(message) {
-    if(!this.state.reachedMax) {
+    if(this.state.user.gender == 'female') {
+      firebase.database().ref().child('games/'+this.gameID).child('messages')
+      .push({
+        text: message[0].text,
+        createdAt: new Date().getTime(),
+        sender: message[0].user._id,
+        name: this.props.user.first_name   
+      })
+
+    } else if(this.state.user.gender == 'male' && !this.state.reachedMax) {
       firebase.database().ref().child('games/'+this.gameID).child('messages')
         .push({
           text: message[0].text,
@@ -89,11 +107,12 @@ export default class MaleChat extends Component {
           sender: message[0].user._id,
           name: this.props.user.first_name   
         })
+
       const sentCount = this.state.sentCount+1
 
       this.setState({sentCount: sentCount})
     }
-    else {
+    else if(this.state.user.gender == 'male' && this.state.reachedMax) {
       Alert.alert('You have sent more than 5 messages. You must now wait for the decision.')
     }
   }

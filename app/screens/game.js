@@ -14,8 +14,7 @@ import {
 
 import Header from '../components/header'
 import Matching from '../components/matching'
-import MaleChat from '../components/maleChat'
-import FemaleChat from '../components/femaleChat'
+import Chat from '../components/chat'
 
 
 import {Router} from '../../app'
@@ -29,14 +28,14 @@ const {height, width} = Dimensions.get('window');
 export default class Game extends Component {
   componentWillMount() {
     this.state = { 
-      game: this.props.game,
-      user: this.props.user,
-      profiles: [],
-      question: '',
-      gameStatus: '',
-      matchedUid: '',
-      foundProfiles: false,
-      malesReachedMax: false,
+        game: {},
+        user: this.props.user,
+        profiles: [],
+        question: '',
+        gameStatus: '',
+        matchedUid: '',
+        foundProfiles: false,
+        malesReachedMax: false,
     }
 
     if(this.state.user.gender == 'male') {  
@@ -47,28 +46,66 @@ export default class Game extends Component {
       FirebaseAPI.updateUser(this.state.user.uid, 'needsFemale', false)
       FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
     }
-    
-    this.state.game.id.split('-').map((uid) => {
-      if(uid != this.state.user.uid){
-        FirebaseAPI.getUserCb(uid, (profile) => {
-          if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
-            this.setState({profiles: [...this.state.profiles, profile], foundProfiles: true}) 
 
-            this.watchForMatch()
+    if(this.props.game != null) {      
+      this.props.game.id.split('-').map((uid) => {
+        if(uid != this.state.user.uid){
+          FirebaseAPI.getUserCb(uid, (profile) => {
+            if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
+              this.setState({profiles: [...this.state.profiles, profile], foundProfiles: true, game: this.props.game}) 
 
-            if(this.state.gameStatus == '') {
-              this.watchForQuestion()
+              this.watchForMatch()
+
+              if(this.state.gameStatus == '') {
+                this.watchForQuestion()
+              }
+
+              this.watchForMaxMessages()            
             }
 
-            this.watchForMaxMessages()            
-          }
+            if(this.state.profiles.length < 1) {
+              this.setState({profiles: [...this.state.profiles, profile]})            
+            } 
+          })
+        }
+      })
+    } else {
+      FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
+      FirebaseAPI.watchUser(this.state.user.uid, (user) => {
+        if (user) {
+          FirebaseAPI.findProfiles(user, (profile) => {
 
-          if(this.state.profiles.length < 1) {
-            this.setState({profiles: [...this.state.profiles, profile]})            
-          } 
+            if(!this.state.foundProfiles) {
+              filterProfile(profile, user, (filteredProfile) => {
+
+                if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
+                  if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
+                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})  
+
+                    this.watchForMatch()
+
+                    if(this.state.gameStatus == '') {
+                      this.watchForQuestion()
+                    }
+
+                    this.watchForMaxMessages()               
+                  }
+
+                  if(this.state.profiles.length < 1) {
+                    this.setState({profiles: [...this.state.profiles, filteredProfile]})            
+                  } 
+                }
+              })
+            } 
+
+            if(this.state.foundProfiles) 
+              return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
+        
+            return false  //geoQuery keeps listening...
         })
-      }
+        }
     })
+    }
   }
 
   componentDidMount() {
@@ -222,9 +259,9 @@ export default class Game extends Component {
             FirebaseAPI.checkMatches(this.state.user.uid, (matches) => {
               if(matches != null) 
                 if(Object.keys(matches)[maleProfiles[0].uid])
-                  this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[0]}))
+                  this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[0]}))
                 else if(Object.keys(matches)[maleProfiles[1].uid])
-                  this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[1]}))
+                  this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[1]}))
             })
       }
   }
@@ -281,7 +318,7 @@ export default class Game extends Component {
                     <Text style={styles.name}>{maleProfile.first_name}</Text>
                   </TouchableOpacity>
                 </View>
-                <MaleChat user={this.state.user}  maleProfile={maleProfile} femaleProfile={femaleProfile} />
+                <Chat user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
               </View>)
     } else if(this.state.user.gender == 'female') {
       const leftProfile = this.state.profiles[0]
@@ -297,7 +334,7 @@ export default class Game extends Component {
                   <Text style={styles.name}>{rightProfile.first_name}</Text>
                 </TouchableOpacity>
               </View>
-              <FemaleChat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
+              <Chat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
   }

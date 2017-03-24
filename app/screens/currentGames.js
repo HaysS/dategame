@@ -71,9 +71,9 @@ export default class CurrentGames extends Component {
 
                 return (
                   <TouchableOpacity onPress={() => {this.openGame(game)}} 
-                  key={game+"-touchable"} >
-                    <View style={styles.game}  key={game+"-container"}>
-                      <Text style={styles.name} key={game+'-name'}>{names[0]} & {names[1]}</Text>
+                  key={game.id+"-touchable"} >
+                    <View style={styles.game}  key={game.id+"-container"}>
+                      <Text style={styles.name} key={game.id+'-name'}>{names[0]} & {names[1]}</Text>
                 		</View>
                 	</TouchableOpacity>
   	      			)
