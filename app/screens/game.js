@@ -47,7 +47,7 @@ export default class Game extends Component {
       FirebaseAPI.updateUser(this.state.user.uid, 'needsMale', true)
     }
 
-    if(this.props.game != null) {      
+    if(this.props.game != null && this.props.game != undefined) {      
       this.props.game.id.split('-').map((uid) => {
         if(uid != this.state.user.uid){
           FirebaseAPI.getUserCb(uid, (profile) => {
@@ -74,21 +74,12 @@ export default class Game extends Component {
       FirebaseAPI.watchUser(this.state.user.uid, (user) => {
         if (user) {
           FirebaseAPI.findProfiles(user, (profile) => {
-
             if(!this.state.foundProfiles) {
               filterProfile(profile, user, (filteredProfile) => {
 
                 if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
-                  if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
-                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})  
-
-                    this.watchForMatch()
-
-                    if(this.state.gameStatus == '') {
-                      this.watchForQuestion()
-                    }
-
-                    this.watchForMaxMessages()               
+                  if(this.state.profiles.length == 1) {   //If there are still less than 2 profiles after filtering
+                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true, gameStatus: 'foundProfilesForNewGame'})               
                   }
 
                   if(this.state.profiles.length < 1) {
@@ -98,11 +89,12 @@ export default class Game extends Component {
               })
             } 
 
-            if(this.state.foundProfiles) 
+            if(this.state.foundProfiles) {       
               return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
+            }
         
             return false  //geoQuery keeps listening...
-        })
+          })
         }
     })
     }
@@ -110,22 +102,40 @@ export default class Game extends Component {
 
   componentDidMount() {
     if(this.state.foundProfiles) {
-        this.checkForEndGame()
-      }
+      this.checkForEndGame()
+    }
   }
 
   componentWillUnmount() {
     if(this.state.foundProfiles)  {
       const femaleProfile = this.state.user.gender == 'female' ? this.state.user : this.state.profiles.find((profile) => {return profile != null ? profile.gender == 'female' : null})
+      const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+        return profile.gender == 'female'
+      })
 
       if(femaleProfile != null) {
         FirebaseAPI.removeMatchesWatcher(femaleProfile.uid)
-        firebase.database().ref().child('users/'+femaleProfile.uid).off()
+        firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
       }
     }
   }
 
   componentDidUpdate() {
+    if(this.state.gameStatus == 'foundProfilesForNewGame') {
+      this.createGame()
+    }
+
+    if(this.state.gameStatus == 'createdNewGame') {
+      firebase.database().ref().child('games/'+this.state.game.id).off()
+
+      this.watchForMatch()
+
+      if(this.state.question == '')
+        this.watchForQuestion()
+
+      this.watchForMaxMessages() 
+    }
+
     if(this.state.foundProfiles) {
       if(this.state.gameStatus == 'hasDecision') {
         this.checkForEndGame()
@@ -137,11 +147,38 @@ export default class Game extends Component {
     }
   } 
 
+  createGame() {
+    const profileArray = [...this.state.profiles, this.props.user]
+    const maleProfiles = profileArray.filter((profile) => { return profile.gender == 'male'})
+    const femaleProfile = profileArray.find((profile) => {return profile.gender == 'female'})
+
+    const profileInfoArray = [{'name': maleProfiles[0].first_name, 'uid': maleProfiles[0].uid, 'gender': maleProfiles[0].gender}, 
+                              {'name': maleProfiles[1].first_name, 'uid': maleProfiles[1].uid, 'gender': maleProfiles[1].gender}, 
+                              {'name': femaleProfile.first_name, 'uid': femaleProfile.uid, 'gender': femaleProfile.gender, 'selectedQuestion': -1}].sort((a, b) => {
+                                return a.uid.localeCompare(b.uid)
+                              })
+
+    //Sort uid concatenation in order of greatness so every user links to the same chat
+    const uidArray = profileInfoArray.map((profile) => {return profile.uid})
+
+    uidArray.sort()
+    const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
+
+    firebase.database().ref().child('games/'+gameID).update({'id': gameID, 'profilesInfo': profileInfoArray})
+    firebase.database().ref().child('games/'+gameID).on('value', (snap) => {
+      this.setState({game: snap.val(), gameStatus: 'createdNewGame'})
+    })
+  }
+
   checkForEndGame() {
     if(this.state.foundProfiles) {
       if(this.state.gameStatus == 'hasDecision') {
         const femaleProfile = this.state.user.gender == 'female' ? this.state.user : this.state.profiles.find((profile) => {return profile != null ? profile.gender == 'female' : null})
-        firebase.database().ref().child('users/'+femaleProfile.uid).off()
+        const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+          return profile.gender == 'female'
+        })
+
+        firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off
         FirebaseAPI.removeMatchesWatcher(femaleProfile.uid)
         firebase.database().ref().child('games/'+this.state.game.id).child('messages').off()
 
@@ -153,21 +190,22 @@ export default class Game extends Component {
   watchForQuestion() {
     const user = this.state.user
     const femaleProfile = user.gender != 'female' ? this.state.profiles.find((profile) => {return profile.gender == 'female'}) : user
+    const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+      return profile.gender == 'female'
+    })
 
     if(femaleProfile != null) {
-      firebase.database().ref().child('users/'+femaleProfile.uid).off()
-      firebase.database().ref().child('users/'+femaleProfile.uid).on('value', (snap) => {
-        if(snap.val().selectedQuestion != -1) {
+      firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
+      firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).on('value', (snap) => {
+        if(snap.val() != null && snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
-            FirebaseAPI.getUserCb(femaleProfile.uid, (profile) => {
-              if(user.gender == 'female')
-                this.setState({question: question.text, user: femaleProfile, gameStatus: 'hasQuestion'})
-              else if(user.gender == 'male')
-                this.setState({question: question.text, gameStatus: 'hasQuestion'})
+            FirebaseAPI.getGame(this.state.game.id, (game) => {
+              if(game != null)
+                this.setState({gameStatus: 'hasQuestion', question: question.text})
             })
           })
-        } else 
-            this.setState({gameStatus: 'none'})
+        } else if(this.state.gameStatus != 'none')
+          this.setState({gameStatus: 'none'})
       })
     }
   }
@@ -275,32 +313,33 @@ export default class Game extends Component {
 
     if(user.gender == 'male') {
       const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+      const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+        return profile.gender == 'female'
+      })
 
-      firebase.database().ref().child('users/'+profile.uid).off()
+      firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
 
-      if(profile.selectedQuestion == -1) {
+      if(femaleProfileInGame.selectedQuestion == -1)
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-      } else {
+      else
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-      }
-    } else if(user.gender == 'female') {
-      if(this.state.malesReachedMax) {
-        profiles = this.state.profiles
+    } else if(user.gender == 'female' && this.state.malesReachedMax) {
+      profiles = this.state.profiles
 
-         return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
-                  <Text style={styles.promptText}>Messages have run out. Make a Decision</Text></TouchableOpacity></View>
-                  <View style={{flex: 5}}>{this.showChat()}</View>
-                </View>)
-      } else if(this.state.gameStatus == 'hasQuestion') {
+      return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {this.props.navigator.push(Router.getRoute('matchDecision', {user: user, topProfile: profiles[0], bottomProfile: profiles[1]}))}}>
+                <Text style={styles.promptText}>Messages have run out. Make a Decision</Text></TouchableOpacity></View>
+                <View style={{flex: 5}}>{this.showChat()}</View>
+              </View>)
+      } else if(user.gender == 'female' && this.state.gameStatus == 'hasQuestion') {
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-      } else if (this.state.gameStatus == 'none') {
-        return(<View style={{flex: 6}}><TouchableOpacity style={styles.promptTouchable} 
-                onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user}))}}>
-                  <View style={{flex: 1}}><Text style={styles.promptText}>Ask Question</Text></View>
-              </TouchableOpacity><View style={{flex: 5}}>{this.showChat()}</View></View>)
+      } else if (user.gender == 'female' && this.state.gameStatus == 'none') {
+        return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
+              onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user, game: this.state.game}))}}>
+                <Text style={styles.promptText}>Ask Question</Text></TouchableOpacity></View>
+                <View style={{flex: 5}}>{this.showChat()}</View>
+              </View>)
       }
-    }
   }
 
   showChat() {
@@ -318,7 +357,7 @@ export default class Game extends Component {
                     <Text style={styles.name}>{maleProfile.first_name}</Text>
                   </TouchableOpacity>
                 </View>
-                <Chat user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
+                <Chat gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
               </View>)
     } else if(this.state.user.gender == 'female') {
       const leftProfile = this.state.profiles[0]
@@ -334,7 +373,7 @@ export default class Game extends Component {
                   <Text style={styles.name}>{rightProfile.first_name}</Text>
                 </TouchableOpacity>
               </View>
-              <Chat user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
+              <Chat gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
   }
@@ -346,12 +385,9 @@ export default class Game extends Component {
       profiles,
     } = this.state
 
-    console.log('rerererenderinggggg')
-
     if(this.state.gameStatus == 'gameComplete') {
       return(<View></View>)
     } else if(this.state.foundProfiles && (this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'none')) {
-        console.log('rendering gifted chat')
 
       const femaleProfile = user.gender != 'female' ? this.state.profiles.find((profile) => {return (profile.gender == 'female')}) : user
 

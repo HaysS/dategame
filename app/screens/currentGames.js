@@ -49,13 +49,11 @@ export default class CurrentGames extends Component {
   }
 
   startNewGame() {
-    if(this.state.user.gender == 'male')
-      this.props.navigator.push(Router.getRoute('maleHome', {'user': this.state.user}))
-    else if(this.state.user.gender == 'female')
-      this.props.navigator.push(Router.getRoute('femaleHome', {'user': this.state.user}))
+    this.props.navigator.push(Router.getRoute('game', {user: this.state.user}))
   }
 
 	render() {
+    console.log(this.state.games)
     if(this.state.games[0] != null)
 	    return(
 	      <View>

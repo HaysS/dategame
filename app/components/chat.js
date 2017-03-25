@@ -23,33 +23,15 @@ export default class Chat extends Component {
     super(props);
     this.state = {
       user: this.props.user,
+      gameID: this.props.gameID,
       messages: [], 
       reachedMax: false
     }
 
-    const profileArray = [this.props.firstProfile, this.props.secondProfile, this.props.user]
-    const maleProfiles = profileArray.filter((profile) => { return profile.gender == 'male'})
-    const femaleProfile = profileArray.find((profile) => {return profile.gender == 'female'})
-
-    const profileInfoArray = [{'name': maleProfiles[0].first_name, 'uid': maleProfiles[0].uid, 'matched': false}, 
-                              {'name': maleProfiles[1].first_name, 'uid': maleProfiles[1].uid, 'matched': false}, 
-                              {'name': femaleProfile.first_name, 'uid': femaleProfile.uid, 'matched': false, 'selectedQuestion': -1}].sort((a, b) => {
-                                return a.uid.localeCompare(b.uid)
-                              })
-
-    //Sort uid concatenation in order of greatness so every user links to the same chat
-    const uidArray = profileInfoArray.map((profile) => {return profile.uid})
-    console.log(uidArray)
-
-    uidArray.sort()
-    this.gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
-
-    firebase.database().ref().child('games/'+this.gameID).update({'id': this.gameID, 'profilesInfo': profileInfoArray})
-
   }
 
   watchChat() {
-    firebase.database().ref().child('games/'+this.gameID).child('messages')
+    firebase.database().ref().child('games/'+this.state.gameID).child('messages')
       .orderByChild('createdAt')
       .on('value', (snap) => {
       let messages = []
@@ -82,7 +64,7 @@ export default class Chat extends Component {
 
 
   componentWillUnmount() {
-    firebase.database().ref().child('games/'+this.gameID).child('messages').off()
+    firebase.database().ref().child('games/'+this.state.gameID).child('messages').off()
   }
 
   componentWillMount() {
@@ -91,7 +73,7 @@ export default class Chat extends Component {
 
   onSend(message) {
     if(this.state.user.gender == 'female') {
-      firebase.database().ref().child('games/'+this.gameID).child('messages')
+      firebase.database().ref().child('games/'+this.state.gameID).child('messages')
       .push({
         text: message[0].text,
         createdAt: new Date().getTime(),
@@ -100,7 +82,7 @@ export default class Chat extends Component {
       })
 
     } else if(this.state.user.gender == 'male' && !this.state.reachedMax) {
-      firebase.database().ref().child('games/'+this.gameID).child('messages')
+      firebase.database().ref().child('games/'+this.state.gameID).child('messages')
         .push({
           text: message[0].text,
           createdAt: new Date().getTime(),

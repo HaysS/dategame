@@ -20,7 +20,11 @@ const size = width/4
  
 export default class Question extends Component { 
   selectQuestion() {
-    FirebaseAPI.updateUser(this.props.user.uid, 'selectedQuestion', this.props.question.id)
+    const femaleProfileInGame = this.props.game.profilesInfo.find((profile) => {
+        return profile.gender == 'female'
+      })
+
+    FirebaseAPI.updateUserInfoInGame(this.props.game.id, this.props.game.profilesInfo.indexOf(femaleProfileInGame), 'selectedQuestion', this.props.question.id)
 
     this.props.callback()
   }

@@ -84,6 +84,11 @@ export const getUserCb = (key, func) => {
     .then((snap) => func(snap.val()))
 }
 
+export const updateUserInfoInGame = (gameKey, profileIndex, key, value) => {
+  firebase.database().ref().child('games').child(gameKey).child('profilesInfo/'+profileIndex)
+    .update({[key]:value})
+}
+
 
 export const getGame = (key, func) => {
    firebase.database().ref().child('games').child(key).once('value')
@@ -118,8 +123,9 @@ export const getGamesWithKey = (key, func) => {
       if(snap.val() != null)
         Object.keys(snap.val()).map((game) => {
           if(game != undefined) {
-            if(game.split('-').some((uid) => {return uid == key}))
+            if(game.split('-').some((uid) => {return uid == key})) {
               getGame(game, func)       
+            }
           }
         })
     })

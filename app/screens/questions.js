@@ -28,6 +28,7 @@ export default class Questions extends Component {
     this.state = { 
       questions: [],
       user: this.props.user,
+      game: this.props.game,
     }
 
     FirebaseAPI.getQuestions((questions) => {
@@ -38,7 +39,8 @@ export default class Questions extends Component {
   render() {
     const {
       questions,
-      user
+      user,
+      game
     } = this.state
 
     return(
@@ -50,7 +52,7 @@ export default class Questions extends Component {
         <View style={styles.container}> 
           {
             questions.map((question) => {
-              return <Question user={user} question={question} key={question.id} callback={() => {this.props.navigator.pop()}}/>
+              return <Question user={user} game={game} question={question} key={question.id} callback={() => {this.props.navigator.pop()}}/>
             })
           }
           <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.logout()}>
