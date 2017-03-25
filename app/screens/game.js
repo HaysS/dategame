@@ -128,23 +128,20 @@ export default class Game extends Component {
     if(this.state.gameStatus == 'createdNewGame') {
       firebase.database().ref().child('games/'+this.state.game.id).off()
 
-      this.watchForMatch()
-
       if(this.state.question == '')
         this.watchForQuestion()
 
       this.watchForMaxMessages() 
     }
 
-    if(this.state.foundProfiles) {
-      if(this.state.gameStatus == 'hasDecision') {
-        this.checkForEndGame()
-      }
+    if(this.state.gameStatus == 'hasQuestion')
+        this.watchForMatch()
 
-      if(this.state.gameStatus == 'endingGame') {
-        this.endGame()
-      }
-    }
+    if(this.state.gameStatus == 'hasDecision')
+      this.checkForEndGame()
+
+    if(this.state.gameStatus == 'endingGame') 
+      this.endGame()
   } 
 
   createGame() {
@@ -178,7 +175,7 @@ export default class Game extends Component {
           return profile.gender == 'female'
         })
 
-        firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off
+        firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
         FirebaseAPI.removeMatchesWatcher(femaleProfile.uid)
         firebase.database().ref().child('games/'+this.state.game.id).child('messages').off()
 
