@@ -316,8 +316,8 @@ export default class Game extends Component {
   }
 
   chatCallback(bool) {
-    console.log('chatCallback')
-    this.setState({chatMounted: bool})
+    if(!this.state.chatMounted)
+      this.setState({chatMounted: true})
   }
 
   showPrompt() {
@@ -369,7 +369,7 @@ export default class Game extends Component {
                     <Text style={styles.name}>{maleProfile.first_name}</Text>
                   </TouchableOpacity>
                 </View>
-                <Chat callback={(bool) => {this.chatCallback(bool)}} gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
+                <Chat callback={() => {this.chatCallback()}} gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
               </View>)
     } else if(this.state.user.gender == 'female') {
       const leftProfile = this.state.profiles[0]
@@ -385,7 +385,7 @@ export default class Game extends Component {
                   <Text style={styles.name}>{rightProfile.first_name}</Text>
                 </TouchableOpacity>
               </View>
-              <Chat callback={(bool) => {this.chatCallback(bool)}} gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
+              <Chat callback={() => {this.chatCallback()} } gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
   }

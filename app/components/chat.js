@@ -21,6 +21,9 @@ const ratio = PixelRatio.get()
 export default class Chat extends Component {
   constructor(props) {
     super(props);
+  }
+
+  componentWillMount() {
     this.state = {
       user: this.props.user,
       gameID: this.props.gameID,
@@ -28,18 +31,21 @@ export default class Chat extends Component {
       reachedMax: false,
       chatLoaded: false,
     }
-  }
 
-  componentWillMount() {
-    console.log('calledChat')
     this.watchChat()
   }
 
   componentDidMount() {
-      console.log(this.state.chatLoaded)
-      this.props.callback(this.state.chatLoaded)
+    if(!this.state.chatLoaded && this.state.messages.length < 1)
+      this.setState({chatLoaded: true})
+
+    this.props.callback()
   }
-  
+
+  componentDidUpdate() {
+    this.props.callback()
+  }
+
   componentWillUnmount() {
     firebase.database().ref().child('games/'+this.state.gameID).child('messages').off()
   }
@@ -123,11 +129,12 @@ export default class Chat extends Component {
               }} />
     		  </View>
   		) 
-    } else
-      return (
-          <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
-          </View>
-      ) 
+    } 
+
+    return (
+        <View>
+        </View>
+    ) 
 	}
 
  }

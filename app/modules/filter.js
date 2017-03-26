@@ -13,11 +13,19 @@ export default filterProfile = (profile, user, func) => {
   
   const isUser = profile.uid != null ? user.uid === profile.uid : false
 
-  if(!isUser)
-    FirebaseAPI.getGameWithKey(profile.uid, (gameID) => {
-      if(gameID == null)
-        func(filterWithPreferences(profile, user))
-    })
+  if(!isUser) {
+    let games = []
+
+    FirebaseAPI.getGamesWithKey(profile.uid, (game) => {
+      if(game == null)
+        games.push(game)
+    }) 
+
+    //If user is in 3 games or less, continue
+    if(games.length <= 3)
+      func(filterWithPreferences(profile, user))
+  }
+    
 }
 
 
