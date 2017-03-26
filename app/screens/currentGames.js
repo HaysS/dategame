@@ -21,18 +21,18 @@ export default class CurrentGames extends Component {
 	    this.state = { 
 	      games: [],
 	      user: this.props.user,
+        canShowGames: false,
 	    }
-  	}
 
-  componentDidMount() {
-    FirebaseAPI.getGamesWithKey(this.state.user.uid, (game) => {
+      FirebaseAPI.getGamesWithKey(this.state.user.uid, (game) => {
        if(game != undefined) {
+          this.setState({canShowGames: false})
           const newGames = [...this.state.games, game]
 
-          this.setState({games: newGames})
+          this.setState({games: newGames, canShowGames: true})
         }
       })
-  }
+  	}
 
   renderStartGameTouchable() {
     if(this.state.games.length <= 3)
@@ -65,11 +65,13 @@ export default class CurrentGames extends Component {
   }
 
 	render() {
-    if(this.state.games[0] != null)
+    if(this.state.canShowGames)
 	    return(
 	      <View>
 	      	<View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
-		        <TouchableOpacity onPress={() => {this.props.navigator.pop()}}>
+		        <TouchableOpacity onPress={() => {
+              if(this.state.canShowGames)
+                this.props.navigator.pop()}}>
 		          <BackHeader />
 		        </TouchableOpacity>
 	        </View>
@@ -95,7 +97,10 @@ export default class CurrentGames extends Component {
       return(
         <View>
           <View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
-            <TouchableOpacity onPress={() => {this.props.navigator.pop()}}>
+            <TouchableOpacity onPress={() => {
+              if(this.state.canShowGames)
+                this.props.navigator.pop()
+              }}>
               <BackHeader />
             </TouchableOpacity>
           </View>
