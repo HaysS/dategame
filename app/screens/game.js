@@ -35,6 +35,7 @@ export default class Game extends Component {
         gameStatus: '',
         matchedUid: '',
         foundProfiles: false,
+        chatLoaded: false,
         malesReachedMax: false,
     }
 
@@ -51,21 +52,15 @@ export default class Game extends Component {
       this.props.game.id.split('-').map((uid) => {
         if(uid != this.state.user.uid){
           FirebaseAPI.getUserCb(uid, (profile) => {
-            if(this.state.profiles.length == 1) {//If there are still less than 2 profiles after filtering
+            if(!this.state.foundProfiles && this.state.gameStatus != 'loadingProfiles') 
+              this.setState({gameStatus: 'loadingProfiles'})
+
+            if(this.state.profiles.length == 1) //If there are still less than 2 profiles after filtering
               this.setState({profiles: [...this.state.profiles, profile], foundProfiles: true, game: this.props.game}) 
 
-              this.watchForMatch()
-
-              if(this.state.gameStatus == '') {
-                this.watchForQuestion()
-              }
-
-              this.watchForMaxMessages()            
-            }
-
-            if(this.state.profiles.length < 1) {
+            if(this.state.profiles.length < 1)
               this.setState({profiles: [...this.state.profiles, profile]})            
-            } 
+             
           })
         }
       })
@@ -73,13 +68,16 @@ export default class Game extends Component {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
       FirebaseAPI.watchUser(this.state.user.uid, (user) => {
         if (user) {
+          if(!this.state.foundProfiles && this.state.gameStatus != 'loadingNewProfiles')
+              this.setState({gameStatus: 'loadingNewProfiles'})
+
           FirebaseAPI.findProfiles(user, (profile) => {
             if(!this.state.foundProfiles) {
               filterProfile(profile, user, (filteredProfile) => {
 
                 if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
                   if(this.state.profiles.length == 1) {   //If there are still less than 2 profiles after filtering
-                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true, gameStatus: 'foundProfilesForNewGame'})               
+                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true})               
                   }
 
                   if(this.state.profiles.length < 1) {
@@ -89,7 +87,7 @@ export default class Game extends Component {
               })
             } 
 
-            if(this.state.foundProfiles) {       
+            if(this.state.foundProfiles) {    
               return true //This will cause the geoQuery to cancel when it is no longer necessary to find profiles
             }
         
@@ -121,17 +119,25 @@ export default class Game extends Component {
   }
 
   componentDidUpdate() {
+    if(this.state.foundProfiles && this.state.gameStatus == 'loadingNewProfiles')
+      this.setState({gameStatus: 'foundProfilesForNewGame'})  
+    else if(this.state.foundProfiles && this.state.gameStatus == 'loadingProfiles')
+      this.setState({gameStatus: 'startingGame'})   
+
+
     if(this.state.gameStatus == 'foundProfilesForNewGame') {
       this.createGame()
     }
 
-    if(this.state.gameStatus == 'createdNewGame') {
+
+    if(this.state.gameStatus == 'startingGame' || (this.state.gameStatus == 'foundProfilesForNewGame' && this.state.game.id != null)) {
       firebase.database().ref().child('games/'+this.state.game.id).off()
 
       if(this.state.question == '')
         this.watchForQuestion()
 
-      this.watchForMaxMessages() 
+      if(!this.state.malesReachedMax)
+        this.watchForMaxMessages() 
     }
 
     if(this.state.gameStatus == 'hasQuestion')
@@ -162,8 +168,12 @@ export default class Game extends Component {
     const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
     firebase.database().ref().child('games/'+gameID).update({'id': gameID, 'profilesInfo': profileInfoArray})
-    firebase.database().ref().child('games/'+gameID).on('value', (snap) => {
-      this.setState({game: snap.val(), gameStatus: 'createdNewGame'})
+    firebase.database().ref().child('games/'+gameID).once('value', (snap) => {
+      const storedGame = snap.val().find((game) => {
+        return game.id == gameID
+      })
+
+      this.setState({game: storedGame, gameStatus: 'startingGame'})
     })
   }
 
@@ -197,12 +207,14 @@ export default class Game extends Component {
         if(snap.val() != null && snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getGame(this.state.game.id, (game) => {
-              if(game != null)
-                this.setState({gameStatus: 'hasQuestion', question: question.text})
+              if(game.id != null) 
+              {
+                this.setState({gameStatus: 'hasQuestion', question: question.text, game: game})
+              }
             })
           })
-        } else if(this.state.gameStatus != 'none')
-          this.setState({gameStatus: 'none'})
+        } else if(this.state.gameStatus == 'startingGame')
+          this.setState({gameStatus: 'noQuestion'})
       })
     }
   }
@@ -301,8 +313,20 @@ export default class Game extends Component {
       }
   }
 
-  menu () {
-    this.props.navigator.pop()
+  showMenu () {
+    if(this.state.chatLoaded)
+      return(
+        <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => {this.props.navigator.pop()}}>
+          <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
+        </TouchableOpacity>
+      )
+    else
+      return(<View />)
+  }
+
+  chatCallback(bool) {
+    console.log(bool)
+    this.setState({chatLoaded: bool})
   }
 
   showPrompt() {
@@ -330,7 +354,7 @@ export default class Game extends Component {
               </View>)
       } else if(user.gender == 'female' && this.state.gameStatus == 'hasQuestion') {
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
-      } else if (user.gender == 'female' && this.state.gameStatus == 'none') {
+      } else if (user.gender == 'female' && this.state.gameStatus == 'noQuestion') {
         return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
               onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user, game: this.state.game}))}}>
                 <Text style={styles.promptText}>Ask Question</Text></TouchableOpacity></View>
@@ -354,7 +378,7 @@ export default class Game extends Component {
                     <Text style={styles.name}>{maleProfile.first_name}</Text>
                   </TouchableOpacity>
                 </View>
-                <Chat gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
+                <Chat callback={(bool) => {this.chatCallback(bool)}} gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
               </View>)
     } else if(this.state.user.gender == 'female') {
       const leftProfile = this.state.profiles[0]
@@ -370,7 +394,7 @@ export default class Game extends Component {
                   <Text style={styles.name}>{rightProfile.first_name}</Text>
                 </TouchableOpacity>
               </View>
-              <Chat gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
+              <Chat callback={(bool) => {this.chatCallback(bool)}} gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
   }
@@ -382,9 +406,7 @@ export default class Game extends Component {
       profiles,
     } = this.state
 
-    if(this.state.gameStatus == 'gameComplete') {
-      return(<View></View>)
-    } else if(this.state.foundProfiles && (this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'none')) {
+    if(this.state.foundProfiles && (this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'noQuestion')) {
 
       const femaleProfile = user.gender != 'female' ? this.state.profiles.find((profile) => {return (profile.gender == 'female')}) : user
 
@@ -396,13 +418,12 @@ export default class Game extends Component {
           </TouchableOpacity>
           <View style={styles.container}>
             {this.showPrompt()}
-            <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => this.menu()}>
-              <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
-            </TouchableOpacity>
+            {this.showMenu()}
           </View>
         </View>
       ) 
-    } else {
+    } else if(this.state.gameStatus != 'loadingProfiles' && this.state.gameStatus != 'loadingNewProfiles' 
+        && this.state.gameStatus != 'endingGame' && this.state.gameStatus != 'startingGame') {
       return(
         <View style={{flex: 1}}>
           <TouchableOpacity style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}
@@ -417,7 +438,18 @@ export default class Game extends Component {
             </TouchableOpacity>
           </View>
         </View>)
-    }
+    } else {
+      return(<View style={{flex: 1}}>
+          <TouchableOpacity style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}
+            onPress={() => {}}>
+          </TouchableOpacity>
+          <View style={styles.container}>
+            <View style={{flex:1, alignItems:'center', justifyContent:'center'}}>
+              <ActivityIndicator size="small"/>
+            </View>
+          </View>
+        </View>)
+    } 
 
   }
 }

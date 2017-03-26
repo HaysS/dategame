@@ -25,50 +25,64 @@ export default class Chat extends Component {
       user: this.props.user,
       gameID: this.props.gameID,
       messages: [], 
-      reachedMax: false
+      reachedMax: false,
+      chatLoaded: false,
     }
-
   }
 
-  watchChat() {
-    firebase.database().ref().child('games/'+this.state.gameID).child('messages')
-      .orderByChild('createdAt')
-      .on('value', (snap) => {
-      let messages = []
-      snap.forEach((child) => {
-        const date = moment(child.val().createdAt).format()
-        messages.push({
-          text: child.val().text,
-          _id: child.key,
-          createdAt: date,
-          user: {
-            _id: child.val().sender,
-            name: child.val().name
-          }
-        })
-      });
-      messages.reverse()
-
-      if(this.state.user.gender == 'male') {
-
-        const uid = this.state.user.uid
-
-        if(messages.filter((m) => {return m.user._id === uid}).length >= 5)
-          this.setState({reachedMax: true, messages: messages})
-        else
-          this.setState({messages})
-      } else if(this.state.user.gender == 'female')
-        this.setState({messages})
-    })
+  componentWillMount() {
+    this.watchChat()
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if(nextState.messages.length == this.state.messages.length) {
+      if(!this.state.chatLoaded) {
+        console.log('called')
+        this.setState({chatLoaded: true})
+        this.props.callback(true)
+      }
+    }
+    
+    return true
+  }
 
   componentWillUnmount() {
     firebase.database().ref().child('games/'+this.state.gameID).child('messages').off()
   }
 
-  componentWillMount() {
-    this.watchChat()
+  messageHandler(snap) {
+    let messages = []
+    snap.forEach((child) => {
+      const date = moment(child.val().createdAt).format()
+      messages.push({
+        text: child.val().text,
+        _id: child.key,
+        createdAt: date,
+        user: {
+          _id: child.val().sender,
+          name: child.val().name
+        }
+      })
+    });
+    messages.reverse()
+
+
+    if(this.state.user.gender == 'male') {
+      const uid = this.state.user.uid
+
+      if(messages.filter((m) => {return m.user._id === uid}).length >= 5)
+        this.setState({reachedMax: true, messages: messages})
+      else 
+        this.setState({messages})
+    } else if(this.state.user.gender == 'female'){
+      this.setState({messages: messages})
+    }
+  }
+
+  watchChat() {
+    firebase.database().ref().child('games/'+this.state.gameID).child('messages')
+      .orderByChild('createdAt')
+      .on('value', (snap) => {this.messageHandler(snap)})
   }
 
   onSend(message) {
@@ -98,18 +112,25 @@ export default class Chat extends Component {
       Alert.alert('You have sent more than 5 messages. You must now wait for the decision.')
     }
   }
+
 	render() {
-		return (
-        <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
-          <GiftedChat
-            messages={this.state.messages}
-            onSend={(m) => this.onSend(m)}
-            renderTime={() => {}}
-            user={{
-              _id: this.props.user.uid,
-            }} />
-  		  </View>
-		)    
+    if(this.state.chatLoaded) {
+  		return (
+          <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
+            <GiftedChat
+              messages={this.state.messages}
+              onSend={(m) => this.onSend(m)}
+              renderTime={() => {}}
+              user={{
+                _id: this.props.user.uid,
+              }} />
+    		  </View>
+  		) 
+    } else
+      return (
+          <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
+          </View>
+      ) 
 	}
 
  }

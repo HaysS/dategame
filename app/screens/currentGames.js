@@ -34,6 +34,18 @@ export default class CurrentGames extends Component {
       })
   }
 
+  renderStartGameTouchable() {
+    if(this.state.games.length <= 3)
+      return(<TouchableOpacity onPress={() => {this.startNewGame()}} 
+            key={"newgame-touchable"} >
+              <View style={styles.game}  key={"newgame-container"}>
+                <Text style={styles.name} key={'newgame-name'}>Start a New Game</Text>
+              </View>
+            </TouchableOpacity>)
+    else
+      return(<View />)
+  }   
+
   openGame(game) {
     this.props.navigator.push(Router.getRoute('game', {user: this.state.user, game: game}))
   }
@@ -53,7 +65,6 @@ export default class CurrentGames extends Component {
   }
 
 	render() {
-    console.log(this.state.games)
     if(this.state.games[0] != null)
 	    return(
 	      <View>
@@ -64,7 +75,7 @@ export default class CurrentGames extends Component {
 	        </View>
 	        <View style={styles.container}>  
 	          {
-	           	this.state.games.map((game) => {
+              this.state.games.map((game) => {
                 const names = this.getProfileNamesFromGame(game)
 
                 return (
@@ -72,17 +83,12 @@ export default class CurrentGames extends Component {
                   key={game.id+"-touchable"} >
                     <View style={styles.game}  key={game.id+"-container"}>
                       <Text style={styles.name} key={game.id+'-name'}>{names[0]} & {names[1]}</Text>
-                		</View>
-                	</TouchableOpacity>
-  	      			)
-	            })
-	          }
-            <TouchableOpacity onPress={() => {this.startNewGame()}} 
-            key={"newgame-touchable"} >
-              <View style={styles.game}  key={"newgame-container"}>
-                <Text style={styles.name} key={'newgame-name'}>Start a New Game</Text>
-              </View>
-            </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })
+            }
+            {this.renderStartGameTouchable()}
 	        </View>
 	      </View>)
     else
@@ -94,12 +100,7 @@ export default class CurrentGames extends Component {
             </TouchableOpacity>
           </View>
           <View style={styles.container}>  
-            <TouchableOpacity onPress={() => {this.startNewGame()}} 
-            key={"newgame-touchable"} >
-              <View style={styles.game}  key={"newgame-container"}>
-                <Text style={styles.name} key={'newgame-name'}>Start a New Game</Text>
-              </View>
-            </TouchableOpacity>
+            {this.renderStartGameTouchable()}
           </View>
         </View>)
   	}
