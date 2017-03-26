@@ -31,26 +31,23 @@ export default class Chat extends Component {
   }
 
   componentWillMount() {
+    console.log('calledChat')
     this.watchChat()
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    if(nextState.messages.length == this.state.messages.length) {
-      if(!this.state.chatLoaded) {
-        console.log('called')
-        this.setState({chatLoaded: true})
-        this.props.callback(true)
-      }
-    }
-    
-    return true
+  componentDidMount() {
+      console.log(this.state.chatLoaded)
+      this.props.callback(this.state.chatLoaded)
   }
-
+  
   componentWillUnmount() {
     firebase.database().ref().child('games/'+this.state.gameID).child('messages').off()
   }
 
   messageHandler(snap) {
+    if(this.state.chatLoaded)
+      this.setState({chatLoaded: false})
+
     let messages = []
     snap.forEach((child) => {
       const date = moment(child.val().createdAt).format()
@@ -71,11 +68,11 @@ export default class Chat extends Component {
       const uid = this.state.user.uid
 
       if(messages.filter((m) => {return m.user._id === uid}).length >= 5)
-        this.setState({reachedMax: true, messages: messages})
+        this.setState({reachedMax: true, messages: messages, chatLoaded: true})
       else 
-        this.setState({messages})
+        this.setState({messages: messages, chatLoaded: true})
     } else if(this.state.user.gender == 'female'){
-      this.setState({messages: messages})
+      this.setState({messages: messages, chatLoaded: true})
     }
   }
 
