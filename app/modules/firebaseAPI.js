@@ -3,6 +3,8 @@ import GeoFire from 'geofire'
 import * as _ from 'lodash'
 import Exponent from 'exponent';
 
+import filterProfile from './filter'
+
 export const loginUser = (accessToken) => {
     const provider = firebase.auth.FacebookAuthProvider //declare fb provider
     const credential = provider.credential(accessToken) //generate fb credential
@@ -69,9 +71,11 @@ export const getMatches = (key, func) => {
   firebase.database().ref().child('relationships/'+key).child('matches').once('value')
     .then((snap) => {
       if(snap.val() != null)
-        Object.keys(snap.val()).map((key) => {
-          getUser(key).then((user) => {func(user)})})})
-   
+          getUsersCb(Object.keys(snap.val()), (profiles) => {
+            if(profiles != null)
+              func(profiles)
+          })
+    })
 }
 
 export const getUser = (key) => {
@@ -84,6 +88,21 @@ export const getUserCb = (key, func) => {
     .then((snap) => func(snap.val()))
 }
 
+export const getUsersCb = (keyArray, func) => {
+  firebase.database().ref().child('users').once('value')
+    .then((snap) => {
+      if(snap.val() != null) {
+        const users = []
+
+        keyArray.forEach((key) => {
+          users.push(snap.val()[key])
+        })
+
+        func(users)
+      }
+    })
+}
+
 export const updateUserInfoInGame = (gameKey, profileIndex, key, value) => {
   firebase.database().ref().child('games').child(gameKey).child('profilesInfo/'+profileIndex)
     .update({[key]:value})
@@ -91,10 +110,25 @@ export const updateUserInfoInGame = (gameKey, profileIndex, key, value) => {
 
 
 export const getGame = (key, func) => {
+  if(key != null)
    firebase.database().ref().child('games').child(key).once('value')
     .then((snap) => {
-      if(snap.val() != null)
         func(snap.val())
+    })
+}
+
+export const getGames = (keyArray, func) => {
+   firebase.database().ref().child('games').once('value')
+    .then((snap) => {
+      if(snap.val() != null) {
+        const games = []
+
+        keyArray.forEach((key) => {
+          games.push(snap.val()[key])
+        })
+
+        func(games)
+      }
     })
 }
 
@@ -120,12 +154,33 @@ export const getGameWithKey = (key, func) => {
 export const getGamesWithKey = (key, func) => {
   firebase.database().ref().child('games').once('value')
     .then((snap) => {
+      if(snap.val() != null) {
+        let storedGameIDs = []
+
+        Object.keys(snap.val()).map((gameID) => {
+          if(gameID != undefined)
+            if(gameID.split('-').some((uid) => {return uid == key})) 
+              storedGameIDs.push(gameID)
+        })
+
+        getGames(storedGameIDs, (games) => {func(games)})
+      }
+    })
+}
+
+//Returns the first game with the given pair of user keys
+export const getGameWithEachKey = (aKey, bKey, func) => {
+  firebase.database().ref().child('games').once('value')
+    .then((snap) => {
       if(snap.val() != null)
-        Object.keys(snap.val()).map((game) => {
-          if(game != undefined) {
-            if(game.split('-').some((uid) => {return uid == key})) {
-              getGame(game, func)       
-            }
+        Object.keys(snap.val()).map((gameID) => {
+          if(gameID != undefined) {
+            let storedGameID = null
+
+            if(gameID.split('-').some((uid) => {return uid == aKey}) && gameID.split('-').some((uid) => {return uid == bKey}))
+              storedGameID = gameID
+
+            getGame(storedGameID, (game) => func(game))
           }
         })
     })
@@ -202,13 +257,60 @@ export const findProfiles = (user, func) => {
       geoQuery.cancel()
     })
 
-    //This will return the GeoCallbackRegistration so that it can be use to cancel the listener later
+    let profiles = []
+    let timeOutSet = false
+
     geoQuery.on("key_entered", (key, location, distance) => {
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
-      getUser(key).then(func).then((bool) => {if(bool) {
-        //console.log('cancelled geoquery')
-        geoQuery.cancel()}})
-    })
+      getUser(key).then((entry) => {
+        filterProfile(entry, user, (profile) => {
+          profiles.push(profile)
+        })
+
+        console.log(profiles)
+
+        if(profiles.length >= 6) {
+          console.log(profiles)
+          func(shuffleArray(profiles).slice(0, 2))
+          geoQuery.cancel()
+        }
+        })
+      })
+
+      if(!timeOutSet) {
+        timeOutSet = true
+        setTimeout(() => {
+          console.log('timedOut')
+
+          if(profiles.length >= 6) 
+            console.log('timedOutAfterFindProfiles')
+          else if(profiles.length >= 2) 
+            func(shuffleArray(profiles).slice(0, 2))
+          else if(profiles.length < 2)
+            func('timedOut')
+
+          geoQuery.cancel()
+        }, 1000)
+      }
   }) 
 }
 
+const shuffleArray = (array) => {
+  let counter = array.length;
+
+  // While there are elements in the array
+  while (counter > 0) {
+    // Pick a random index
+    let index = Math.floor(Math.random() * counter);
+
+    // Decrease counter by 1
+    counter--;
+
+    // And swap the last element with it
+    let temp = array[counter];
+    array[counter] = array[index];
+    array[index] = temp;
+  }
+
+  return array
+}

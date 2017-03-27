@@ -1,0 +1,8 @@
+{
+  "exponentServerPort": 19000,
+  "packagerPort": 19001,
+  "packagerPid": 12324,
+  "exponentServerNgrokUrl": "https://2n-tij.haysstanford.grambler.exp.direct",
+  "packagerNgrokUrl": "https://packager.2n-tij.haysstanford.grambler.exp.direct",
+  "ngrokPid": 12472
+}

@@ -14,22 +14,23 @@ export default filterProfile = (profile, user, func) => {
   const isUser = profile.uid != null ? user.uid === profile.uid : false
 
   if(!isUser) {
-    let games = []
+    FirebaseAPI.getGamesWithKey(profile.uid, (games) => {
+      if(games == [] || games.length < 3) {
+        const gameWithUser = games.map((game) => {
+          const gameID = game.id
 
-    FirebaseAPI.getGamesWithKey(profile.uid, (game) => {
-      if(game == null)
-        games.push(game)
-    }) 
+          if(gameID.split('-').some((uid) => {return uid == user.uid}) && gameID.split('-').some((uid) => {return uid == profile.uid}))
+            return game
+        })[0]
 
-    //If user is in 3 games or less, continue
-    if(games.length <= 3)
-      func(filterWithPreferences(profile, user))
+        if(gameWithUser == null)
+          func(profile)
+      }
+    })
   }
-    
 }
 
-
-const filterWithPreferences = (profile, user) => {
+export const filterWithPreferences = (profile, user) => {
     if(user.gender == 'female' && profile.gender == 'male') {
       return profile
     }
@@ -45,4 +46,6 @@ const filterWithPreferences = (profile, user) => {
         return profile
       }
     }
+
+    return false
 }

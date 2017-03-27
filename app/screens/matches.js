@@ -21,16 +21,16 @@ export default class Matches extends Component {
 	    this.state = { 
 	      profiles: [],
 	      user: this.props.user,
+        canShowMatches: false,
 	    }
 
-      FirebaseAPI.getMatches(this.state.user.uid, (profile) => {
-        const profiles = [...this.state.profiles, profile]
-        this.setState({profiles: profiles})
+      FirebaseAPI.getMatches(this.state.user.uid, (profiles) => {
+        this.setState({profiles: profiles, canShowMatches: true})
       })
   	}
 
 	render() {
-    if(this.state.profiles[0] != null)
+    if(this.state.canShowMatches)
 	    return(
 	      <View>
 	      	<View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>

@@ -21,8 +21,6 @@ import {Router} from '../../app'
 import * as firebase from 'firebase'
 import * as FirebaseAPI from '../modules/firebaseAPI'
 
-import filterProfiles from '../modules/filter'
-
 const {height, width} = Dimensions.get('window');
 
 export default class Game extends Component {
@@ -31,6 +29,7 @@ export default class Game extends Component {
         game: {},
         user: this.props.user,
         profiles: [],
+        matchedProfile: null,
         question: '',
         gameStatus: '',
         matchedUid: '',
@@ -68,32 +67,27 @@ export default class Game extends Component {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
       FirebaseAPI.watchUser(this.state.user.uid, (user) => {
         if (user) {
-          FirebaseAPI.findProfiles(user, (profile) => {
+          FirebaseAPI.findProfiles(user, (profiles) => {
+            if(profiles == 'timedOut') {
+              Alert.alert('At this moment, there aren\'t enough profiles in your area. Check back in a few minutes!')
+              this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+            }
+
             if(this.state.gameStatus == '')
               this.setState({gameStatus: 'startingProfilesSearch'})
-            if(!this.state.foundProfiles)
-              filterProfile(profile, user, (filteredProfile) => {
-                this.setState({gameStatus: 'loadingNewProfile'})
 
-                if(filteredProfile != null && !this.state.profiles.some((profile) => {return profile.uid == filteredProfile.uid})) {
-                  if(this.state.profiles.length == 1)  {//If there are still less than 2 profiles after filtering
-                    this.setState({profiles: [...this.state.profiles, filteredProfile], foundProfiles: true, gameStatus: 'loadedNewProfiles'}) 
-                  }             
+            if(!this.state.foundProfiles) {
+              this.setState({gameStatus: 'loadingNewProfile'})
 
-                  if(this.state.profiles.length < 1) 
-                    this.setState({profiles: [...this.state.profiles, filteredProfile], gameStatus: 'newProfileLoaded'})  
-
-                }
-              })
-        })
-      }
-    })
-  }
-}
-
-  componentDidMount() {
-    if(this.state.foundProfiles) {
-      this.checkForEndGame()
+              if(profiles != null && profiles != 'timedOut' && profiles.length == 2) {
+                if(this.state.profiles.length == 0)  {//If there are still less than 2 profiles after filtering
+                  this.setState({profiles: profiles, foundProfiles: true, gameStatus: 'loadedNewProfiles'}) 
+                }             
+              }
+            }
+          })
+        }
+      })
     }
   }
 
@@ -133,14 +127,21 @@ export default class Game extends Component {
         this.watchForMaxMessages() 
     }
 
-    if(this.state.gameStatus == 'hasQuestion')
-      this.watchForMatch()
+    // if(this.state.gameStatus == 'hasQuestion')
+    //   this.watchForMatch()
 
     if(this.state.gameStatus == 'hasDecision')
       this.checkForEndGame()
 
     if(this.state.gameStatus == 'endingGame') 
       this.endGame()
+
+    if(this.state.gameStatus == 'hasBeenMatched')
+      this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
+    else if(this.state.gamesStatus == 'notChosen')
+      this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+
+            
   } 
 
   createGame() {
@@ -277,16 +278,16 @@ export default class Game extends Component {
 
       FirebaseAPI.checkMatches(femaleProfile.uid, (matches) => {
         if(matches != null) { 
+          this.setState({gameStatus: 'checkingMatches'})
           const matchUids = Object.keys(matches)
 
           console.log('ending game!!!!')
 
           if(matchUids.some((uid) => {return this.state.user.uid == uid})) {
-            this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: femaleProfile}))
-            return null
+            this.setState({gameStatus: 'hasBeenMatched', matchedProfile: femaleProfile})
           } else if(matchUids.some((uid) => {return maleProfile.uid == uid})) {
             Alert.alert('You were not chosen. Keep playing, you will get it eventually!')
-            this.props.navigator.pop()
+            this.setState({gameStatus: 'notChosen'})
           } 
         }
       })
@@ -295,10 +296,11 @@ export default class Game extends Component {
 
             FirebaseAPI.checkMatches(this.state.user.uid, (matches) => {
               if(matches != null) 
+                this.setState({gameStatus: 'checkingMatches'})
                 if(Object.keys(matches)[maleProfiles[0].uid])
-                  this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[0]}))
+                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfile[0]})
                 else if(Object.keys(matches)[maleProfiles[1].uid])
-                  this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: maleProfiles[1]}))
+                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfile[1]})
             })
       }
   }
@@ -311,9 +313,60 @@ export default class Game extends Component {
         </TouchableOpacity>
       )
     }
+  }
+
+  showFemaleTouchable() {
+    if(this.state.chatMounted || this.state.gameStatus == 'newProfileLoaded' || this.state.gameStatus == 'startingProfilesSearch') {
+      const femaleProfile = this.state.user.gender != 'female' ? this.state.profiles.find((profile) => {return (profile.gender == 'female')}) : this.state.user
+
+      return(
+        <TouchableOpacity style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}
+          onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: femaleProfile}))}}>
+          <Header facebookID={femaleProfile.id} />
+        </TouchableOpacity>
+      )
+    }
 
     return(<View />)
   }
+
+  showMaleTouchables() {
+    if(this.state.chatMounted || this.state.gameStatus == 'newProfileLoaded' || this.state.gameStatus == 'startingProfilesSearch') {
+      if(this.state.user.gender == 'male') {
+      const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
+      const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
+
+      return(
+        <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+          <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
+            <Text style={styles.name}>{this.state.user.first_name}</Text>
+          </TouchableOpacity>
+          <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+          <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
+            <Text style={styles.name}>{maleProfile.first_name}</Text>
+          </TouchableOpacity>
+        </View>
+        )
+    } else if(this.state.user.gender == 'female') {
+      const leftProfile = this.state.profiles[0]
+      const rightProfile = this.state.profiles[1]
+      
+      return(
+        <View style={{flexDirection: 'row', justifyContent: 'center',}}>
+          <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
+            <Text style={styles.name}>{leftProfile.first_name}</Text>
+          </TouchableOpacity>
+          <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
+          <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
+            <Text style={styles.name}>{rightProfile.first_name}</Text>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+  }
+
+  return(<View />)
+}
 
   chatCallback(bool) {
     if(!this.state.chatMounted)
@@ -360,15 +413,7 @@ export default class Game extends Component {
       const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
 
       return(<View style={styles.container}>
-               <View style={{flexDirection: 'row', justifyContent: 'center',}}>
-                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.props.user}))}}>
-                    <Text style={styles.name}>{this.props.user.first_name}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
-                  <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: maleProfile}))}}>
-                    <Text style={styles.name}>{maleProfile.first_name}</Text>
-                  </TouchableOpacity>
-                </View>
+                {this.showMaleTouchables()}
                 <Chat callback={() => {this.chatCallback()}} gameID={this.state.game.id} user={this.state.user} firstProfile={maleProfile} secondProfile={femaleProfile} />
               </View>)
     } else if(this.state.user.gender == 'female') {
@@ -376,15 +421,7 @@ export default class Game extends Component {
       const rightProfile = this.state.profiles[1]
       
       return(<View style={styles.container}>
-              <View style={{flexDirection: 'row', justifyContent: 'center',}}>
-                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: leftProfile}))}}>
-                  <Text style={styles.name}>{leftProfile.first_name}</Text>
-                </TouchableOpacity>
-                <View style={styles.nameHeaderPipe}><Text style={styles.name}> | </Text></View>
-                <TouchableOpacity style={styles.nameHeader} onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: rightProfile}))}}>
-                  <Text style={styles.name}>{rightProfile.first_name}</Text>
-                </TouchableOpacity>
-              </View>
+              {this.showMaleTouchables()}
               <Chat callback={() => {this.chatCallback()} } gameID={this.state.game.id} user={this.state.user} firstProfile={leftProfile} secondProfile={rightProfile} />
             </View>)
     }
@@ -397,18 +434,13 @@ export default class Game extends Component {
       profiles,
     } = this.state
 
+    console.log('gameStatus -------------------------------')
     console.log(this.state.gameStatus)
 
     if(this.state.foundProfiles && (this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'noQuestion')) {
-
-      const femaleProfile = user.gender != 'female' ? this.state.profiles.find((profile) => {return (profile.gender == 'female')}) : user
-
       return(
         <View style={{flex: 1}}>
-          <TouchableOpacity style={{height:height/8+5, borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}
-            onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: femaleProfile}))}}>
-            <Header facebookID={femaleProfile.id} />
-          </TouchableOpacity>
+          {this.showFemaleTouchable()}
           <View style={styles.container}>
             {this.showPrompt()}
             {this.showMenu()}

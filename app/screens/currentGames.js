@@ -24,12 +24,9 @@ export default class CurrentGames extends Component {
         canShowGames: false,
 	    }
 
-      FirebaseAPI.getGamesWithKey(this.state.user.uid, (game) => {
-       if(game != undefined) {
-          this.setState({canShowGames: false})
-          const newGames = [...this.state.games, game]
-
-          this.setState({games: newGames, canShowGames: true})
+      FirebaseAPI.getGamesWithKey(this.state.user.uid, (games) => {
+        if(games != undefined) {
+          this.setState({games: games, canShowGames: true})
         }
       })
   	}
