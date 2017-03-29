@@ -3,7 +3,7 @@ import GeoFire from 'geofire'
 import * as _ from 'lodash'
 import Exponent from 'exponent';
 
-import filterProfile from './filter'
+import * as filter from './filter'
 
 export const loginUser = (accessToken) => {
     const provider = firebase.auth.FacebookAuthProvider //declare fb provider
@@ -261,37 +261,34 @@ export const findProfiles = (user, func) => {
     let timeOutSet = false
 
     geoQuery.on("key_entered", (key, location, distance) => {
+      console.log('triggered')
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
-      getUser(key).then((entry) => {
-        filterProfile(entry, user, (profile) => {
-          profiles.push(profile)
-        })
-
-        console.log(profiles)
-
-        if(profiles.length >= 6) {
-          console.log(profiles)
-          func(shuffleArray(profiles).slice(0, 2))
-          geoQuery.cancel()
-        }
-        })
-      })
 
       if(!timeOutSet) {
-        timeOutSet = true
-        setTimeout(() => {
-          console.log('timedOut')
+            timeOutSet = true
+            console.log('settingTimer')
+            setTimeout(() => {
+              console.log('timedOut')
+              geoQuery.cancel()
 
-          if(profiles.length >= 6) 
-            console.log('timedOutAfterFindProfiles')
-          else if(profiles.length >= 2) 
-            func(shuffleArray(profiles).slice(0, 2))
-          else if(profiles.length < 2)
-            func('timedOut')
+              if(profiles.length >= 2) {
+                func(shuffleArray(filter.filterWithPreferences(profiles, user)))
+              } else if(profiles.length < 2)
+                func('timedOut')
 
-          geoQuery.cancel()
-        }, 1000)
-      }
+              geoQuery.cancel()
+            }, 2000) 
+        }
+
+      getUser(key).then((entry) => {
+        if(entry != null) {
+          filter.filterProfile(entry, user, (profile) => {
+            if(profile != false)
+              profiles.push(profile)
+          }) 
+        }   
+      })
+    }) 
   }) 
 }
 

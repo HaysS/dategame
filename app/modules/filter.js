@@ -3,7 +3,7 @@ import moment from 'moment'
 
 import * as FirebaseAPI from './firebaseAPI'
 
-export default filterProfile = (profile, user, func) => {
+export const filterProfile = (profile, user, func) => {
   let passedFemaleProfile = false
   let passedMaleProfile = false
   let counter = 0 
@@ -30,22 +30,39 @@ export default filterProfile = (profile, user, func) => {
   }
 }
 
-export const filterWithPreferences = (profile, user) => {
-    if(user.gender == 'female' && profile.gender == 'male') {
-      return profile
-    }
+export const filterWithPreferences = (profiles, user) => {
+  let needsMale = user.needsMale
+  let needsFemale = user.needsFemale
+  let counter = 0
 
-    if (user.gender == 'male') {
-      if(user.needsMale && profile.gender == 'male') {
-        FirebaseAPI.updateUser(user.uid, 'needsMale', false)
-        return profile
-      }
 
-      if(user.needsFemale && profile.gender == 'female') {
-        FirebaseAPI.updateUser(user.uid, 'needsFemale', false)
-        return profile
+  const filteredProfiles = profiles.map((profile) => {
+      if(user.gender == 'female')
+        if(needsMale && profile.gender == 'male') {
+          counter++
+
+          if(counter >= 2)
+            needsMale = false
+
+          return profile
+        }
+
+      if (user.gender == 'male') {
+        if(needsMale && profile.gender == 'male') {
+          needsMale = false
+
+          return profile
+        }
+
+        if(needsFemale && profile.gender == 'female') {
+          needsFemale = false
+
+          return profile
+        }
       }
-    }
 
     return false
+  }).filter((profile) => {return profile != false})
+
+  return filteredProfiles
 }

@@ -65,27 +65,23 @@ export default class Game extends Component {
       })
     } else {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
-      FirebaseAPI.watchUser(this.state.user.uid, (user) => {
-        if (user) {
-          FirebaseAPI.findProfiles(user, (profiles) => {
-            if(profiles == 'timedOut') {
-              Alert.alert('At this moment, there aren\'t enough profiles in your area. Check back in a few minutes!')
-              this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
-            }
+      FirebaseAPI.findProfiles(this.state.user, (profiles) => {
+        if(profiles == 'timedOut') {
+          Alert.alert('At this moment, there aren\'t enough profiles in your area. Check back in a few minutes!')
+          this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+        }
 
-            if(this.state.gameStatus == '')
-              this.setState({gameStatus: 'startingProfilesSearch'})
+        if(this.state.gameStatus == '')
+          this.setState({gameStatus: 'startingProfilesSearch'})
 
-            if(!this.state.foundProfiles) {
-              this.setState({gameStatus: 'loadingNewProfile'})
+        if(!this.state.foundProfiles) {
+          this.setState({gameStatus: 'loadingNewProfile'})
 
-              if(profiles != null && profiles != 'timedOut' && profiles.length == 2) {
-                if(this.state.profiles.length == 0)  {//If there are still less than 2 profiles after filtering
-                  this.setState({profiles: profiles, foundProfiles: true, gameStatus: 'loadedNewProfiles'}) 
-                }             
-              }
-            }
-          })
+          if(profiles != null && profiles != 'timedOut' && profiles.length == 2) {
+            if(this.state.profiles.length == 0)  {//If there are still less than 2 profiles after filtering
+              this.setState({profiles: profiles, foundProfiles: true, gameStatus: 'loadedNewProfiles'}) 
+            }             
+          }
         }
       })
     }
@@ -127,8 +123,8 @@ export default class Game extends Component {
         this.watchForMaxMessages() 
     }
 
-    // if(this.state.gameStatus == 'hasQuestion')
-    //   this.watchForMatch()
+    if(this.state.gameStatus == 'hasQuestion')
+      this.watchForMatch()
 
     if(this.state.gameStatus == 'hasDecision')
       this.checkForEndGame()
@@ -146,6 +142,7 @@ export default class Game extends Component {
 
   createGame() {
     const profileArray = [...this.state.profiles, this.props.user]
+    console.log(profileArray)
     const maleProfiles = profileArray.filter((profile) => { return profile.gender == 'male'})
     const femaleProfile = profileArray.find((profile) => {return profile.gender == 'female'})
 
@@ -376,15 +373,18 @@ export default class Game extends Component {
   showPrompt() {
     const {user} = this.state
 
+    if(this.state.gameStatus == 'hasQuestion') {
+        const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+          return profile.gender == 'female'
+        })
+
+        firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
+      }
+
     if(user.gender == 'male') {
       const profile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
-      const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
-        return profile.gender == 'female'
-      })
 
-      firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
-
-      if(femaleProfileInGame.selectedQuestion == -1)
+      if(this.state.gameStatus == 'noQuestion')
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>A Question is Being Chosen...</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
       else
         return(<View style={{flex: 6}}><View style={{flex: 1}}><Text style={styles.promptText}>{this.state.question}</Text></View><View style={{flex: 5}}>{this.showChat()}</View></View>)
