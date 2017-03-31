@@ -28,6 +28,8 @@ const firebaseConfig = {
   databaseURL: "https://dategame-4957f.firebaseio.com",
 } 
 
+
+
 firebase.initializeApp(firebaseConfig)
 
 export const Router = createRouter(() => ({
@@ -49,7 +51,10 @@ export default class App extends Component {
     return(
       <NavigationProvider router={Router}>
         <StatusBar barStyle="dark-content" />
-        <StackNavigation initialRoute={Router.getRoute('loading')} />
+        <StackNavigation initialRoute={Router.getRoute('loading')} defaultRouteConfig={() => ({
+          ...Navigator.SceneConfigs.FloatFromBottom,
+          gestures: {}, // or null
+        })}/>
       </NavigationProvider>
       )
   }

@@ -19,6 +19,12 @@ import {Router} from '../../app'
 const {height, width} = Dimensions.get('window');
 
 export default class MatchDecision extends Component {
+  static route = {
+    styles: {
+      gestures: null,
+    },
+  };
+  
   componentWillMount() {
     this.state = { 
       user: this.props.user,
@@ -29,7 +35,7 @@ export default class MatchDecision extends Component {
 
   chooseProfile(profile) {
     FirebaseAPI.matchProfile(this.state.user.uid, profile.uid)
-    this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
+    this.props.navigator.pop()
   }
 
   render() {

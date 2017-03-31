@@ -17,6 +17,12 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 const {height, width} = Dimensions.get('window');
 
 export default class CurrentGames extends Component {
+  static route = {
+    styles: {
+      gestures: null,
+    },
+  };
+  
 	componentWillMount() {
 	    this.state = { 
 	      games: [],
@@ -33,12 +39,17 @@ export default class CurrentGames extends Component {
 
   renderStartGameTouchable() {
     if(this.state.games.length <= 3)
-      return(<TouchableOpacity onPress={() => {this.startNewGame()}} 
-            key={"newgame-touchable"} >
-              <View style={styles.game}  key={"newgame-container"}>
-                <Text style={styles.name} key={'newgame-name'}>Start a New Game</Text>
-              </View>
-            </TouchableOpacity>)
+      if(this.state.user.isSearchingForGame)
+        return(<View style={styles.game}  key={"newgame-container"}>
+                  <Text style={styles.name} key={'newgame-name'}>Currently Searching...</Text>
+                </View>)
+      else
+        return(<TouchableOpacity onPress={() => {this.startNewGame()}} 
+              key={"newgame-touchable"} >
+                <View style={styles.game}  key={"newgame-container"}>
+                  <Text style={styles.name} key={'newgame-name'}>Start a Game Search!</Text>
+                </View>
+              </TouchableOpacity>)
     else
       return(<View />)
   }   
@@ -58,7 +69,10 @@ export default class CurrentGames extends Component {
   }
 
   startNewGame() {
-    this.props.navigator.push(Router.getRoute('game', {user: this.state.user}))
+    FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', true)
+    FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+      this.props.navigator.push(Router.getRoute('game', {user: user}))
+    })
   }
 
 	render() {
@@ -68,7 +82,7 @@ export default class CurrentGames extends Component {
 	      	<View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
 		        <TouchableOpacity onPress={() => {
               if(this.state.canShowGames)
-                this.props.navigator.pop()}}>
+                this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))}}>
 		          <BackHeader />
 		        </TouchableOpacity>
 	        </View>
@@ -96,7 +110,7 @@ export default class CurrentGames extends Component {
           <View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
             <TouchableOpacity onPress={() => {
               if(this.state.canShowGames)
-                this.props.navigator.pop()
+                this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
               }}>
               <BackHeader />
             </TouchableOpacity>

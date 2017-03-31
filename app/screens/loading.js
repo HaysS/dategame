@@ -11,6 +11,12 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 import {Router} from '../../app'
 
 export default class Loading extends Component {
+  static route = {
+    styles: {
+      gestures: null,
+    },
+  };
+  
   componentWillMount() {
     this.firebaseRef = firebase.database().ref('users')
   }

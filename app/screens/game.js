@@ -24,6 +24,12 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 const {height, width} = Dimensions.get('window');
 
 export default class Game extends Component {
+  static route = {
+    styles: {
+      gestures: null,
+    },
+  };
+  
   componentWillMount() {
     this.state = { 
         game: {},
@@ -67,7 +73,7 @@ export default class Game extends Component {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
       FirebaseAPI.findProfiles(this.state.user, (profiles) => {
         if(profiles == 'timedOut') {
-          Alert.alert('At this moment, there aren\'t enough profiles in your area. Check back in a few minutes!')
+          Alert.alert('We\'re finding people for a new game! It will appear in the "Play Games" section once it has begun.')
           this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
         }
 
@@ -123,21 +129,24 @@ export default class Game extends Component {
         this.watchForMaxMessages() 
     }
 
-    if(this.state.gameStatus == 'hasQuestion')
-      this.watchForMatch()
+    if(this.state.chatMounted) {
+      if(this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'noQuestion')
+        this.watchForMatch()
 
-    if(this.state.gameStatus == 'hasDecision')
-      this.checkForEndGame()
+      if(this.state.gameStatus == 'hasDecision')
+        this.checkForEndGame()
 
-    if(this.state.gameStatus == 'endingGame') 
-      this.endGame()
+      if(this.state.gameStatus == 'endingGame') 
+        this.endGame()
 
-    if(this.state.gameStatus == 'hasBeenMatched')
-      this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
-    else if(this.state.gamesStatus == 'notChosen')
-      this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
-
-            
+      if(this.state.gameStatus == 'hasBeenMatched') {
+        this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
+        FirebaseAPI.deleteGame(this.state.game.id)
+      } else if(this.state.gameStatus == 'notChosen') {
+        this.props.navigator.pop()
+        FirebaseAPI.deleteGame(this.state.game.id)
+      }
+    }
   } 
 
   createGame() {
@@ -146,9 +155,9 @@ export default class Game extends Component {
     const maleProfiles = profileArray.filter((profile) => { return profile.gender == 'male'})
     const femaleProfile = profileArray.find((profile) => {return profile.gender == 'female'})
 
-    const profileInfoArray = [{'name': maleProfiles[0].first_name, 'uid': maleProfiles[0].uid, 'gender': maleProfiles[0].gender}, 
-                              {'name': maleProfiles[1].first_name, 'uid': maleProfiles[1].uid, 'gender': maleProfiles[1].gender}, 
-                              {'name': femaleProfile.first_name, 'uid': femaleProfile.uid, 'gender': femaleProfile.gender, 'selectedQuestion': -1}].sort((a, b) => {
+    const profileInfoArray = [{'name': maleProfiles[0].first_name, 'uid': maleProfiles[0].uid, 'gender': maleProfiles[0].gender, 'viewedEndGame': false}, 
+                              {'name': maleProfiles[1].first_name, 'uid': maleProfiles[1].uid, 'gender': maleProfiles[1].gender, 'viewedEndGame': false}, 
+                              {'name': femaleProfile.first_name, 'uid': femaleProfile.uid, 'gender': femaleProfile.gender, 'viewedEndGame': false, 'selectedQuestion': -1}].sort((a, b) => {
                                 return a.uid.localeCompare(b.uid)
                               })
 
@@ -159,9 +168,14 @@ export default class Game extends Component {
     const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
     firebase.database().ref().child('games/'+gameID).update({'id': gameID, 'profilesInfo': profileInfoArray})
+    uidArray.forEach((uid) => {
+      FirebaseAPI.updateUser(uid, 'isSearchingForGame', false)
+    })
 
     FirebaseAPI.getGame(gameID, (game) => {
-      this.setState({game: game, gameStatus: 'startingGame'})
+      FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+        this.setState({game: game, gameStatus: 'startingGame', user: user})
+      })
     })
   }
 
@@ -214,7 +228,6 @@ export default class Game extends Component {
 
           FirebaseAPI.removeMatchesWatcher(femaleProfile.uid)
 
-
           FirebaseAPI.watchMatches(femaleProfile.uid, (matches) => {
             if(matches != null) { 
               const matchUids = Object.keys(matches)
@@ -225,17 +238,18 @@ export default class Game extends Component {
                 this.setState({'matchedUid': maleProfile.uid, 'gameStatus': 'hasDecision'})
             }
           }) 
-        } else if(this.state.user.gender == 'female') {
-          maleProfiles = this.state.profiles
+    } else if(this.state.user.gender == 'female') {
+      maleProfiles = this.state.profiles
 
-          FirebaseAPI.removeMatchesWatcher(this.state.user.uid)
+      FirebaseAPI.removeMatchesWatcher(this.state.user.uid)
 
-          FirebaseAPI.watchMatches(this.state.user.uid, (matches) => {
-            if(matches != null)
-              if(Object.keys(matches)[maleProfiles[0].uid])
-                this.setState({'matchedUid': this.state.user.uid, 'gameStatus': 'hasDecision'})
-          })
+      FirebaseAPI.watchMatches(this.state.user.uid, (matches) => {
+        if(matches != null) {
+          if(matches[maleProfiles[0].uid] || matches[maleProfiles[1].uid])
+            this.setState({'matchedUid': this.state.user.uid, 'gameStatus': 'hasDecision'})
         }
+      })
+    }
   }
 
   watchForMaxMessages() {
@@ -269,6 +283,12 @@ export default class Game extends Component {
   }
   
   endGame() {
+    const userInGame = this.state.game.profilesInfo.find((profile) => {
+          return profile.uid == this.state.user.uid
+        })
+
+    firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(userInGame)).update({['viewedEndGame']:true})
+
     if(this.state.user.gender == 'male') {
       const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
       const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
@@ -294,10 +314,10 @@ export default class Game extends Component {
             FirebaseAPI.checkMatches(this.state.user.uid, (matches) => {
               if(matches != null) 
                 this.setState({gameStatus: 'checkingMatches'})
-                if(Object.keys(matches)[maleProfiles[0].uid])
-                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfile[0]})
-                else if(Object.keys(matches)[maleProfiles[1].uid])
-                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfile[1]})
+                if(matches[maleProfiles[0].uid])
+                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfiles[0]})
+                else if(matches[maleProfiles[1].uid])
+                  this.setState({gameStatus: 'hasBeenMatched', matchedProfile: maleProfiles[1]})
             })
       }
   }

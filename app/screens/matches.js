@@ -17,6 +17,12 @@ import * as FirebaseAPI from '../modules/firebaseAPI'
 const {height, width} = Dimensions.get('window');
 
 export default class Matches extends Component {
+  static route = {
+    styles: {
+      gestures: null,
+    },
+  };
+  
 	componentWillMount() {
 	    this.state = { 
 	      profiles: [],

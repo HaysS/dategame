@@ -18,6 +18,12 @@ const APP_ID = '372366163116874';
 const {height, width} = Dimensions.get('window');
 
 export default class Login extends Component {
+	static route = {
+	    styles: {
+	      gestures: null,
+	    },
+	  };
+  
 	displayError(messsage) {
 	    Alert.alert(
 	      'Error: ',

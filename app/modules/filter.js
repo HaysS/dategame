@@ -13,7 +13,7 @@ export const filterProfile = (profile, user, func) => {
   
   const isUser = profile.uid != null ? user.uid === profile.uid : false
 
-  if(!isUser) {
+  if(!isUser && profile.isSearchingForGame) {
     FirebaseAPI.getGamesWithKey(profile.uid, (games) => {
       if(games == [] || games.length < 3) {
         const gameWithUser = games.map((game) => {

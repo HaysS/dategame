@@ -133,8 +133,13 @@ export const getGames = (keyArray, func) => {
 }
 
 export const deleteGame = (key) => {
+  const getEndGameViews = (game) => { return game.profilesInfo.filter((profile) => {return profile.viewedEndGame}).length }
   //firebase.database().ref().child('games').child(key).remove()
-  console.log('remove game')
+  firebase.database().ref().child('games').child(key).once('value')
+  .then((snap) => {
+    if(getEndGameViews(snap.val()) >= 3)
+      firebase.database().ref().child('games').child(key).remove()
+  })
 }
 
 //Returns the first game with the given uid
@@ -197,11 +202,9 @@ export const removeWatchUser = (key) => {
 }
 
 export const watchMatches = (key, func) => {
-  if(firebase.database().ref().child('relationships/'+key).child('matches').once('value', (snap) => {return snap.val() == undefined})) {
-    firebase.database().ref().child('relationships/'+key).child('matches').on('value', (snap) => {
-      func(snap.val())
-    })
-  }
+  firebase.database().ref().child('relationships/'+key).child('matches').on('value', (snap) => {
+    func(snap.val())
+  })
 }
 
 export const checkMatches = (key, func) => {
