@@ -73,8 +73,7 @@ export default class Game extends Component {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
       FirebaseAPI.findProfiles(this.state.user, (profiles) => {
         if(profiles == 'timedOut') {
-          Alert.alert('We\'re finding people for a new game! It will appear in the "Play Games" section once it has begun.')
-          this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))
+          this.setState({gameStatus: 'returnToMenu'})
         }
 
         if(this.state.gameStatus == '')
@@ -107,6 +106,14 @@ export default class Game extends Component {
     }
   }
 
+
+  componentWillUpdate() {
+    if(this.state.gameStatus == 'returnToMenu') {
+      Alert.alert('We\'re finding people for a new game! It will appear in the "Play Games" section once it has begun.')
+      this.props.navigator.replace(Router.getRoute('menu', {user: this.state.user}))
+    }
+  }
+
   componentDidUpdate() {
     if(this.state.foundProfiles && this.state.gameStatus == 'loadedNewProfiles')
       this.setState({gameStatus: 'foundProfilesForNewGame'})  
@@ -127,25 +134,22 @@ export default class Game extends Component {
 
       if(!this.state.malesReachedMax)
         this.watchForMaxMessages() 
+
+      this.watchForMatch()
     }
 
-    if(this.state.chatMounted) {
-      if(this.state.gameStatus == 'hasQuestion' || this.state.gameStatus == 'noQuestion')
-        this.watchForMatch()
+    if(this.state.gameStatus == 'hasDecision')
+      this.checkForEndGame()
 
-      if(this.state.gameStatus == 'hasDecision')
-        this.checkForEndGame()
+    if(this.state.gameStatus == 'endingGame') 
+      this.endGame()
 
-      if(this.state.gameStatus == 'endingGame') 
-        this.endGame()
-
-      if(this.state.gameStatus == 'hasBeenMatched') {
-        this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
-        FirebaseAPI.deleteGame(this.state.game.id)
-      } else if(this.state.gameStatus == 'notChosen') {
-        this.props.navigator.pop()
-        FirebaseAPI.deleteGame(this.state.game.id)
-      }
+    if(this.state.gameStatus == 'hasBeenMatched') {
+      this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
+      FirebaseAPI.deleteGame(this.state.game.id)
+    } else if(this.state.gameStatus == 'notChosen') {
+      this.props.navigator.pop()        
+      FirebaseAPI.deleteGame(this.state.game.id)
     }
   } 
 
@@ -206,6 +210,8 @@ export default class Game extends Component {
     if(femaleProfile != null) {
       firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
       firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).on('value', (snap) => {
+        this.setState({gameStatus: 'watchingForQuestion'})
+
         if(snap.val() != null && snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getGame(this.state.game.id, (game) => {
@@ -215,7 +221,7 @@ export default class Game extends Component {
               }
             })
           })
-        } else if(this.state.gameStatus == 'startingGame')
+        } else
           this.setState({gameStatus: 'noQuestion'})
       })
     }
@@ -325,7 +331,7 @@ export default class Game extends Component {
   showMenu () {
     if(this.state.chatMounted || this.state.gameStatus == 'newProfileLoaded' || this.state.gameStatus == 'startingProfilesSearch') {
       return(
-        <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => {this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))}}>
+        <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => {this.props.navigator.replace(Router.getRoute('menu', {user: this.state.user}))}}>
           <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
         </TouchableOpacity>
       )
@@ -385,7 +391,8 @@ export default class Game extends Component {
   return(<View />)
 }
 
-  chatCallback(bool) {
+  chatCallback() {
+    console.log('chatCallback')
     if(!this.state.chatMounted)
       this.setState({chatMounted: true})
   }

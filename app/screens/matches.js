@@ -31,7 +31,8 @@ export default class Matches extends Component {
 	    }
 
       FirebaseAPI.getMatches(this.state.user.uid, (profiles) => {
-        this.setState({profiles: profiles, canShowMatches: true})
+        if(profiles != null)
+          this.setState({profiles: profiles, canShowMatches: true})
       })
   	}
 

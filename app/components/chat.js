@@ -36,14 +36,16 @@ export default class Chat extends Component {
   }
 
   componentDidMount() {
-    if(!this.state.chatLoaded && this.state.messages.length < 1)
+    if(!this.state.chatLoaded && this.state.messages.length > 1)
       this.setState({chatLoaded: true})
-
-    this.props.callback()
   }
 
   componentDidUpdate() {
-    this.props.callback()
+    if(!this.state.chatLoaded && this.state.messages.length > 1)
+      this.setState({chatLoaded: true})
+
+    if(this.state.chatLoaded)
+      this.props.callback()
   }
 
   componentWillUnmount() {
@@ -132,7 +134,7 @@ export default class Chat extends Component {
     } 
 
     return (
-        <View>
+        <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
         </View>
     ) 
 	}

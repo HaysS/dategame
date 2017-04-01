@@ -75,6 +75,8 @@ export const getMatches = (key, func) => {
             if(profiles != null)
               func(profiles)
           })
+      else
+        func(null)
     })
 }
 
