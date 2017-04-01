@@ -71,11 +71,11 @@ export default class MatchChat extends Component {
   }
 
   componentDidMount() {
-	Alert.alert('You both can only send 10 messages! Share your contact info to chat more :)')
+	 // Alert.alert('You both can only send 10 messages! Share your contact info to chat more :)')
   }
 
   onSend(message) {
-    if(!this.state.reachedMax) {
+    // if(!this.state.reachedMax) {
       firebase.database().ref().child('messages').child(this.chatID)
         .push({
           text: message[0].text,
@@ -86,10 +86,10 @@ export default class MatchChat extends Component {
       const sentCount = this.state.sentCount+1
 
       this.setState({sentCount: sentCount})
-    }
-    else {
-      Alert.alert('You have sent 10 messages. You must now wait for the decision.')
-    }
+    // }
+    // else {
+    //   Alert.alert('You have sent 10 messages. You must now wait for the decision.')
+    // }
   }
 	render() {
 		return (
