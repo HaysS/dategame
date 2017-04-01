@@ -38,6 +38,9 @@ export default class Chat extends Component {
   componentDidMount() {
     if(!this.state.chatLoaded && this.state.messages.length > 1)
       this.setState({chatLoaded: true})
+
+    if(this.state.chatLoaded)
+      this.props.callback()
   }
 
   componentDidUpdate() {
