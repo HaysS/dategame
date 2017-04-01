@@ -274,9 +274,9 @@ export const findProfiles = (user, func) => {
               console.log('timedOut')
               geoQuery.cancel()
 
-              if(profiles.length >= 2) {
+              if(filter.filterWithPreferences(profiles, user).length >= 2) {
                 func(shuffleArray(filter.filterWithPreferences(profiles, user)))
-              } else if(profiles.length < 2)
+              } else if(filter.filterWithPreferences(profiles, user).length < 2)
                 func('timedOut')
 
               geoQuery.cancel()

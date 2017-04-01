@@ -30,6 +30,10 @@ export default class CurrentGames extends Component {
         canShowGames: false,
 	    }
 
+      FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+        this.setState({user: user})
+      })
+
       FirebaseAPI.getGamesWithKey(this.state.user.uid, (games) => {
         if(games != undefined) {
           this.setState({games: games, canShowGames: true})
@@ -82,7 +86,7 @@ export default class CurrentGames extends Component {
 	      	<View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
 		        <TouchableOpacity onPress={() => {
               if(this.state.canShowGames)
-                this.props.navigator.push(Router.getRoute('menu', {user: this.state.user}))}}>
+                this.props.navigator.pop()}}>
 		          <BackHeader />
 		        </TouchableOpacity>
 	        </View>

@@ -32,7 +32,7 @@ export default class Match extends Component {
       user: this.props.user
     }
   }
-
+  
   logout() {
     this.props.navigator.popToTop()
     InteractionManager.runAfterInteractions(() => {
