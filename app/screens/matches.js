@@ -30,18 +30,30 @@ export default class Matches extends Component {
         canShowMatches: false,
 	    }
 
+      FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+        this.setState({user: user})
+      })
+
       FirebaseAPI.getMatches(this.state.user.uid, (profiles) => {
         if(profiles != null)
           this.setState({profiles: profiles, canShowMatches: true})
       })
   	}
 
+  goToMatch(profile) {
+    this.setState({canShowMatches: false})
+    this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))
+  }
+
+
 	render() {
     if(this.state.canShowMatches)
 	    return(
 	      <View>
 	      	<View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
-		        <TouchableOpacity onPress={() => {this.props.navigator.pop()}}>
+		        <TouchableOpacity onPress={() => {
+              if(this.state.canShowMatches)
+                this.props.navigator.pop()}}>
 		          <BackHeader />
 		        </TouchableOpacity>
 	        </View>
@@ -49,7 +61,7 @@ export default class Matches extends Component {
 	          {
 	           	this.state.profiles.map((profile) => {
 	              	return (
-	              		<TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: profile}))}} 
+	              		<TouchableOpacity onPress={() => {this.goToMatch(profile)}} 
 	              		key={profile.uid+"-touchable"} >
 		              		<View style={styles.match}  key={profile.uid+"-container"}>
 		          				<Text style={styles.name} key={profile.uid+'-name'}>{profile.first_name}</Text>
@@ -64,7 +76,9 @@ export default class Matches extends Component {
       return(
         <View>
           <View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
-            <TouchableOpacity onPress={() => {this.props.navigator.pop()}}>
+            <TouchableOpacity onPress={() => {
+              if(this.state.canShowMatches)
+                this.props.navigator.pop()}}>
               <BackHeader />
             </TouchableOpacity>
           </View>

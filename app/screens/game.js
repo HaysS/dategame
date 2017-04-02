@@ -115,6 +115,14 @@ export default class Game extends Component {
   }
 
   componentDidUpdate() {
+    if(this.state.gameStatus == 'hasBeenMatched') {
+      this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
+      FirebaseAPI.deleteGame(this.state.game.id)
+    } else if(this.state.gameStatus == 'notChosen') {
+      this.props.navigator.pop()        
+      FirebaseAPI.deleteGame(this.state.game.id)
+    }
+
     if(this.state.foundProfiles && this.state.gameStatus == 'loadedNewProfiles')
       this.setState({gameStatus: 'foundProfilesForNewGame'})  
     else if(this.state.foundProfiles && this.state.gameStatus == 'loadingProfiles')
@@ -143,14 +151,6 @@ export default class Game extends Component {
 
     if(this.state.gameStatus == 'endingGame') 
       this.endGame()
-
-    if(this.state.gameStatus == 'hasBeenMatched') {
-      this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
-      FirebaseAPI.deleteGame(this.state.game.id)
-    } else if(this.state.gameStatus == 'notChosen') {
-      this.props.navigator.pop()        
-      FirebaseAPI.deleteGame(this.state.game.id)
-    }
   } 
 
   createGame() {
