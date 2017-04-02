@@ -4,6 +4,7 @@ import {
   View,
   TouchableOpacity,
   Text,
+  InteractionManager,
   PixelRatio,
   StyleSheet
 } from 'react-native'
@@ -36,17 +37,15 @@ export default class Chat extends Component {
   }
 
   componentDidMount() {
-    if(!this.state.chatLoaded && this.state.messages.length > 1)
+    InteractionManager.runAfterInteractions(() => {
       this.setState({chatLoaded: true})
+    })
 
     if(this.state.chatLoaded)
       this.props.callback()
   }
 
   componentDidUpdate() {
-    if(!this.state.chatLoaded && this.state.messages.length > 1)
-      this.setState({chatLoaded: true})
-
     if(this.state.chatLoaded)
       this.props.callback()
   }
@@ -79,11 +78,11 @@ export default class Chat extends Component {
       const uid = this.state.user.uid
 
       if(messages.filter((m) => {return m.user._id === uid}).length >= 5)
-        this.setState({reachedMax: true, messages: messages, chatLoaded: true})
+        this.setState({reachedMax: true, messages: messages})
       else 
-        this.setState({messages: messages, chatLoaded: true})
+        this.setState({messages: messages})
     } else if(this.state.user.gender == 'female'){
-      this.setState({messages: messages, chatLoaded: true})
+      this.setState({messages: messages})
     }
   }
 
@@ -122,24 +121,18 @@ export default class Chat extends Component {
   }
 
 	render() {
-    if(this.state.chatLoaded) {
-  		return (
-          <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
-            <GiftedChat
-              messages={this.state.messages}
-              onSend={(m) => this.onSend(m)}
-              renderTime={() => {}}
-              user={{
-                _id: this.props.user.uid,
-              }} />
-    		  </View>
-  		) 
-    } 
-
-    return (
+    console.log("LAKJFASKLFASKLFKSAFKASDLKFASDJLK")
+		return (
         <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
-        </View>
-    ) 
+          <GiftedChat
+            messages={this.state.messages}
+            onSend={(m) => this.onSend(m)}
+            renderTime={() => {}}
+            user={{
+              _id: this.props.user.uid,
+            }} />
+  		  </View>
+		)  
 	}
 
  }

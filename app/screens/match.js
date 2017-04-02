@@ -134,7 +134,7 @@ export default class Match extends Component {
             <View style={{flex:1, justifyContent: 'center', alignItems: 'center'}}>
         		  <TouchableOpacity style={{}}
         		    onPress={() => {
-                  if(this.state.chatLoaded)
+                  if(this.state.interactionsComplete)
                     this.props.navigator.push(Router.getRoute('profile', {profile: profile}))}}>
         		    <Header facebookID={profile.id}/>
                     <View>

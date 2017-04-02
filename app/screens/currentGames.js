@@ -36,7 +36,11 @@ export default class CurrentGames extends Component {
 
       FirebaseAPI.getGamesWithKey(this.state.user.uid, (games) => {
         if(games != undefined) {
-          this.setState({games: games, canShowGames: true})
+          const currentGames = games.filter((game) => {
+            return !(game.profilesInfo.find((profile) => {return profile.uid == this.state.user.uid}).viewedEndGame)
+          })
+
+          this.setState({games: currentGames, canShowGames: true})
         }
       })
   	}
@@ -80,6 +84,7 @@ export default class CurrentGames extends Component {
   }
 
 	render() {
+
     if(this.state.canShowGames)
 	    return(
 	      <View>
@@ -94,6 +99,7 @@ export default class CurrentGames extends Component {
 	          {
               this.state.games.map((game) => {
                 const names = this.getProfileNamesFromGame(game)
+
 
                 return (
                   <TouchableOpacity onPress={() => {this.openGame(game)}} 

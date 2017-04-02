@@ -77,7 +77,6 @@ export default class Matches extends Component {
         <View>
           <View style={{borderBottomWidth: 3, borderColor: 'gray', backgroundColor: 'white'}}>
             <TouchableOpacity onPress={() => {
-              if(this.state.canShowMatches)
                 this.props.navigator.pop()}}>
               <BackHeader />
             </TouchableOpacity>

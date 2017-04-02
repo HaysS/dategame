@@ -42,6 +42,7 @@ export default class Game extends Component {
         foundProfiles: false,
         chatMounted: false,
         malesReachedMax: false,
+        interactionsComplete: false,
     }
 
     if(this.state.user.gender == 'male') {  
@@ -92,6 +93,12 @@ export default class Game extends Component {
     }
   }
 
+  componentDidMount() {
+    InteractionManager.runAfterInteractions(() => {
+      this.setState({interactionsComplete: true})
+    })
+  }
+
   componentWillUnmount() {
     if(this.state.foundProfiles)  {
       const femaleProfile = this.state.user.gender == 'female' ? this.state.user : this.state.profiles.find((profile) => {return profile != null ? profile.gender == 'female' : null})
@@ -115,11 +122,12 @@ export default class Game extends Component {
   }
 
   componentDidUpdate() {
-    if(this.state.gameStatus == 'hasBeenMatched') {
-      this.props.navigator.push(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
+    console.log('get that route:')
+    if(this.state.gameStatus == 'hasBeenMatched' && this.state.interactionsComplete) {
+      this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
       FirebaseAPI.deleteGame(this.state.game.id)
-    } else if(this.state.gameStatus == 'notChosen') {
-      this.props.navigator.pop()        
+    } else if(this.state.gameStatus == 'notChosen' && this.state.interactionsComplete) {
+      this.props.navigator.replace(Router.getRoute('menu', {user: this.state.user}))    
       FirebaseAPI.deleteGame(this.state.game.id)
     }
 
@@ -215,19 +223,23 @@ export default class Game extends Component {
         if(snap.val() != null && snap.val().selectedQuestion != -1) {
           FirebaseAPI.getQuestion(snap.val().selectedQuestion, (question) => {
             FirebaseAPI.getGame(this.state.game.id, (game) => {
-              if(game.id != null) 
+              if(game.id != null && this.state.gameStatus == 'watchingForQuestion') 
               {
                 this.setState({gameStatus: 'hasQuestion', question: question.text, game: game})
               }
             })
           })
-        } else
+        } else if(this.state.gameStatus == 'watchingForQuestion')
           this.setState({gameStatus: 'noQuestion'})
       })
     }
   }
 
   watchForMatch() {
+    const femaleProfileInGame = this.state.game.profilesInfo.find((profile) => {
+      return profile.gender == 'female'
+    })
+
     if(this.state.user.gender == 'male') {
           const femaleProfile = this.state.profiles.find((profile) => {return profile.gender == 'female'})
           const maleProfile = this.state.profiles.find((profile) => {return profile.gender == 'male'})
@@ -238,10 +250,14 @@ export default class Game extends Component {
             if(matches != null) { 
               const matchUids = Object.keys(matches)
 
-              if(matchUids.some((uid) => {return this.state.user.uid == uid}))
+              if(matchUids.some((uid) => {return this.state.user.uid == uid})) {
+                firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
                 this.setState({'matchedUid': this.state.user.uid, 'gameStatus': 'hasDecision'})
-              else if(matchUids.some((uid) => {return maleProfile.uid == uid}))
+              }
+              else if(matchUids.some((uid) => {return maleProfile.uid == uid})){
+                firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
                 this.setState({'matchedUid': maleProfile.uid, 'gameStatus': 'hasDecision'})
+              }
             }
           }) 
     } else if(this.state.user.gender == 'female') {
@@ -251,8 +267,10 @@ export default class Game extends Component {
 
       FirebaseAPI.watchMatches(this.state.user.uid, (matches) => {
         if(matches != null) {
-          if(matches[maleProfiles[0].uid] || matches[maleProfiles[1].uid])
+          if(matches[maleProfiles[0].uid] || matches[maleProfiles[1].uid]) {
+            firebase.database().ref().child('games/'+this.state.game.id).child('profilesInfo/'+this.state.game.profilesInfo.indexOf(femaleProfileInGame)).off()
             this.setState({'matchedUid': this.state.user.uid, 'gameStatus': 'hasDecision'})
+          }
         }
       })
     }
