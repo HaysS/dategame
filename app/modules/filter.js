@@ -18,12 +18,12 @@ export const filterProfile = (profile, user, func) => {
       if(profiles == null || profiles.some((matchedProfile) => {return profile.uid == matchedProfile.uid}) != false)
         FirebaseAPI.getGamesWithKey(profile.uid, (games) => {
           if(games == [] || games.length < 3) {
-            const gameWithUser = games.map((game) => {
+            const gameWithUser = profile.gender == 'female' ? games.map((game) => {
               const gameID = game.id
 
               if(gameID.split('-').some((uid) => {return uid == user.uid}) && gameID.split('-').some((uid) => {return uid == profile.uid}))
                 return game
-            })[0]
+            })[0] : null
 
             if(gameWithUser == null)
               func(profile)

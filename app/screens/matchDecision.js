@@ -34,8 +34,10 @@ export default class MatchDecision extends Component {
   }
 
   chooseProfile(profile) {
-    FirebaseAPI.matchProfile(this.state.user.uid, profile.uid)
-    this.props.navigator.pop()
+    InteractionManager.runAfterInteractions(() => {
+      this.props.navigator.pop()
+      FirebaseAPI.matchProfile(this.state.user.uid, profile.uid)
+    })
   }
 
   render() {

@@ -7,6 +7,7 @@ import {
   TouchableOpacity, 
   Dimensions,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 
 import BackHeader from '../components/backHeader'
@@ -45,11 +46,23 @@ export default class CurrentGames extends Component {
       })
   	}
 
+  componentDidMount() {
+    if(this.state.canShowGames && this.state.games.length == 0 && !this.state.user.isSearchingForGame) {
+      this.startNewGame()
+    }
+  }
+
+  componentDidUpdate() {
+    if(this.state.canShowGames && this.state.games.length == 0 && !this.state.user.isSearchingForGame) {
+      this.startNewGame()
+    }
+  }
+
   renderStartGameTouchable() {
     if(this.state.games.length <= 3)
       if(this.state.user.isSearchingForGame)
         return(<View style={styles.game}  key={"newgame-container"}>
-                  <Text style={styles.name} key={'newgame-name'}>Currently Searching...</Text>
+                  <Text style={styles.name} key={'newgame-name'}>Currently Searching For A Game...</Text>
                 </View>)
       else
         return(<TouchableOpacity onPress={() => {this.startNewGame()}} 
@@ -78,8 +91,10 @@ export default class CurrentGames extends Component {
 
   startNewGame() {
     FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', true)
-    FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
-      this.props.navigator.push(Router.getRoute('game', {user: user}))
+    InteractionManager.runAfterInteractions(() => {
+      FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+        this.props.navigator.push(Router.getRoute('game', {user: user}))
+      })
     })
   }
 

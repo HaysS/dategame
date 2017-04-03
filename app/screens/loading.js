@@ -29,8 +29,6 @@ export default class Loading extends Component {
           if (user != null) {
             this.firebaseRef.child(fbAuth.uid).off('value')
             this.props.navigator.push(Router.getRoute('menu', {user}))
-          } else {
-            FirebaseAPI.logoutUser()
           }
         }) 
       } else {                         // no user is signed in

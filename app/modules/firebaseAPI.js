@@ -47,7 +47,7 @@ export const mergeUser = (uid, newData) => {
         uid: uid,
         birthday: "01/01/1992",
         bio: 'App Developer',
-        selectedQuestion: '-1',
+        isSearchingForGame: false,
     }
     const current = snap.val()
     const mergedUser = {...defaults, ...current, ...newData}
@@ -282,7 +282,7 @@ export const findProfiles = (user, func) => {
                 func('timedOut')
 
               geoQuery.cancel()
-            }, 2000) 
+            }, 4000) 
         }
 
       getUser(key).then((entry) => {

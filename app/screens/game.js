@@ -122,7 +122,6 @@ export default class Game extends Component {
   }
 
   componentDidUpdate() {
-    console.log('get that route:')
     if(this.state.gameStatus == 'hasBeenMatched' && this.state.interactionsComplete) {
       this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
       FirebaseAPI.deleteGame(this.state.game.id)
