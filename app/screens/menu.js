@@ -57,8 +57,8 @@ export default class Match extends Component {
 		  </TouchableOpacity>
       <View style={styles.container}>
           <View style={{flex: 1, justifyContent:'center', backgroundColor: 'white'}}>
-          <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('editProfile', {profile: this.state.user}))}}>
-            <Text style={styles.menuItem}>Edit Profile</Text> 
+          <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('profile', {profile: this.state.user}))}}>
+            <Text style={styles.menuItem}>Your Profile</Text> 
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {this.props.navigator.push(Router.getRoute('currentGames', {'user': this.state.user}))}}>
             <Text style={styles.menuItem}>Play Games</Text>

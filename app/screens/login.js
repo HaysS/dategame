@@ -5,7 +5,8 @@ import {
   View,
   Alert,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  Image,
 } from 'react-native';
 
 import Exponent from 'exponent'
@@ -61,6 +62,14 @@ export default class Login extends Component {
 	      		<Text style={{textAlign: 'center', fontSize: 52, color: 'darkred'}}>
 	      			Welcome to Catchable!
 	      		</Text>
+	      	</View>
+	      	<View style={{flex: 1, justifyContent: 'center'}}>
+		      	<View style={{width:width/1.4, height:height/2.4, borderRadius: 75, shadowColor: '#000000', shadowOffset: {width: 0, height: 0}, shadowRadius: 10, shadowOpacity: 0.5,}}>
+					<Image 
+					resizeMode='cover'
+					source={require( "../assets/Beautiful-Chinese-girls.jpg")}
+					style={{width:width/1.4, height:height/2.4, borderRadius: 75}} />
+		      	</View>
 	      	</View>
 	      	<View style={{flex: 1, justifyContent: 'center'}}>
 		      	<TouchableOpacity onPress={this.fbLogin}>

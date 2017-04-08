@@ -35,6 +35,7 @@ export default class CurrentGames extends Component {
         this.setState({user: user})
       })
 
+
       FirebaseAPI.getGamesWithKey(this.state.user.uid, (games) => {
         if(games != undefined) {
           const currentGames = games.filter((game) => {
@@ -44,27 +45,42 @@ export default class CurrentGames extends Component {
           this.setState({games: currentGames, canShowGames: true})
         }
       })
-  	}
+	}
 
   componentDidMount() {
-    if(this.state.canShowGames && this.state.games.length == 0 && !this.state.user.isSearchingForGame) {
+    if(this.state.canShowGames && this.state.games.length == 0) {
+      console.log('asdlkfjasdlfjaslflkasdlfasjkljklfas')
+
+      FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', false)
+    }
+
+    if(this.state.canShowGames && this.state.games.length <= 1 && !this.state.user.isSearchingForGame) {
       this.startNewGame()
     }
   }
 
+  shouldComponentUpdate() {
+    FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
+      if(this.state.canShowGames && this.state.user.isSearchingForGame != user.isSearchingForGame)
+        this.setState({user: user})
+    })
+
+    return true
+  }
+
   componentDidUpdate() {
-    if(this.state.canShowGames && this.state.games.length == 0 && !this.state.user.isSearchingForGame) {
+    if(this.state.canShowGames && this.state.games.length == 0) {
+      console.log('asdlkfjasdlfjaslflkasdlfasjkljklfas')
+      FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', false)
+    }
+
+    if(this.state.canShowGames && this.state.games.length <= 1 && !this.state.user.isSearchingForGame) {
       this.startNewGame()
     }
   }
 
   renderStartGameTouchable() {
     if(this.state.games.length <= 3)
-      if(this.state.user.isSearchingForGame)
-        return(<View style={styles.game}  key={"newgame-container"}>
-                  <Text style={styles.name} key={'newgame-name'}>Currently Searching For A Game...</Text>
-                </View>)
-      else
         return(<TouchableOpacity onPress={() => {this.startNewGame()}} 
               key={"newgame-touchable"} >
                 <View style={styles.game}  key={"newgame-container"}>
@@ -90,7 +106,8 @@ export default class CurrentGames extends Component {
   }
 
   startNewGame() {
-    FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', true)
+    this.setState({canShowGames: false})
+
     InteractionManager.runAfterInteractions(() => {
       FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
         this.props.navigator.push(Router.getRoute('game', {user: user}))

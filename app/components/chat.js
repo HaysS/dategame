@@ -40,9 +40,6 @@ export default class Chat extends Component {
     InteractionManager.runAfterInteractions(() => {
       this.setState({chatLoaded: true})
     })
-
-    if(this.state.chatLoaded)
-      this.props.callback()
   }
 
   componentDidUpdate() {
@@ -121,7 +118,7 @@ export default class Chat extends Component {
   }
 
 	render() {
-    console.log("LAKJFASKLFASKLFKSAFKASDLKFASDJLK")
+    console.log(this.state.messages)
 		return (
         <View style={{flex:1, borderBottomWidth: 1, borderColor: 'gray'}} >
           <GiftedChat

@@ -46,7 +46,6 @@ export const mergeUser = (uid, newData) => {
         ageRange: [18,24],
         uid: uid,
         birthday: "01/01/1992",
-        bio: 'App Developer',
         isSearchingForGame: false,
     }
     const current = snap.val()
@@ -266,14 +265,13 @@ export const findProfiles = (user, func) => {
     let timeOutSet = false
 
     geoQuery.on("key_entered", (key, location, distance) => {
-      console.log('triggered')
       // console.log(key + " entered query at " + location + " (" + distance + " km from center)");
 
       if(!timeOutSet) {
             timeOutSet = true
-            console.log('settingTimer')
+            // console.log('settingTimer')
             setTimeout(() => {
-              console.log('timedOut')
+              // console.log('timedOut')
               geoQuery.cancel()
 
               if(filter.filterWithPreferences(profiles, user).length >= 2) {

@@ -74,6 +74,7 @@ export default class Game extends Component {
       FirebaseAPI.watchUserLocationDemo(this.state.user.uid)
       FirebaseAPI.findProfiles(this.state.user, (profiles) => {
         if(profiles == 'timedOut') {
+          FirebaseAPI.updateUser(this.state.user.uid, 'isSearchingForGame', true)
           this.setState({gameStatus: 'returnToMenu'})
         }
 
@@ -117,12 +118,13 @@ export default class Game extends Component {
   componentWillUpdate() {
     if(this.state.gameStatus == 'returnToMenu') {
       Alert.alert('We\'re finding people for a new game! It will appear in the "Play Games" section once it has begun.')
-      this.props.navigator.replace(Router.getRoute('menu', {user: this.state.user}))
+      this.props.navigator.pop(2)
     }
   }
 
   componentDidUpdate() {
     if(this.state.gameStatus == 'hasBeenMatched' && this.state.interactionsComplete) {
+      Alert.alert("YOU WERE CHOSEN! Congrats, you attractive little devil.")
       this.props.navigator.replace(Router.getRoute('match', {user: this.state.user, profile: this.state.matchedProfile}))
       FirebaseAPI.deleteGame(this.state.game.id)
     } else if(this.state.gameStatus == 'notChosen' && this.state.interactionsComplete) {
@@ -147,11 +149,11 @@ export default class Game extends Component {
       if(this.state.question == '')
         this.watchForQuestion()
 
-      if(!this.state.malesReachedMax)
-        this.watchForMaxMessages() 
-
       this.watchForMatch()
     }
+
+    if(!this.state.malesReachedMax)
+      this.watchForMaxMessages() 
 
     if(this.state.gameStatus == 'hasDecision')
       this.checkForEndGame()
@@ -179,9 +181,9 @@ export default class Game extends Component {
     const gameID = uidArray[0]+'-'+uidArray[1]+'-'+uidArray[2]
 
     firebase.database().ref().child('games/'+gameID).update({'id': gameID, 'profilesInfo': profileInfoArray})
-    uidArray.forEach((uid) => {
-      FirebaseAPI.updateUser(uid, 'isSearchingForGame', false)
-    })
+    // uidArray.forEach((uid) => {
+    //   FirebaseAPI.updateUser(uid, 'isSearchingForGame', false)
+    // })
 
     FirebaseAPI.getGame(gameID, (game) => {
       FirebaseAPI.getUserCb(this.state.user.uid, (user) => {
@@ -278,7 +280,6 @@ export default class Game extends Component {
   watchForMaxMessages() {
       const gameID = this.state.game.id
 
-      firebase.database().ref().child('games/'+gameID).child('messages').off()
       firebase.database().ref().child('games/'+gameID).child('messages')
         .on('value', (snap) => {
         let messages = []
@@ -349,7 +350,7 @@ export default class Game extends Component {
       return(
         <TouchableOpacity style={{justifyContent: 'flex-start', alignItems:'center'}} onPress={() => {
           if(this.state.chatMounted || this.state.gameStatus == 'newProfileLoaded' || this.state.gameStatus == 'startingProfilesSearch')
-            this.props.navigator.replace(Router.getRoute('menu', {user: this.state.user}))}}>
+            this.props.navigator.pop(2)}}>
           <Text style={{marginTop: 10, marginBottom: 20, fontSize: 40}}>Menu</Text>
         </TouchableOpacity>
       )
@@ -450,7 +451,7 @@ export default class Game extends Component {
       } else if (user.gender == 'female' && this.state.gameStatus == 'noQuestion') {
         return(<View style={{flex: 6}}><View style={{flex: 1}}><TouchableOpacity style={styles.promptTouchable} 
               onPress={() => {this.props.navigator.push(Router.getRoute('questions', {user: user, game: this.state.game}))}}>
-                <Text style={styles.promptText}>Ask Question</Text></TouchableOpacity></View>
+                <Text style={styles.promptText}>Touch To Ask A Question</Text></TouchableOpacity></View>
                 <View style={{flex: 5}}>{this.showChat()}</View>
               </View>)
       }

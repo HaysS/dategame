@@ -32,8 +32,6 @@ export default class Profile extends Component {
             source={{uri: fbImageUrl}}
             style={{width:width, height:height/2}} />
           <Text style={styles.name}>{profile.first_name}</Text>
-          <Text style={styles.work}>{profile.bio}</Text>
-          <Text style={styles.bio}>The best of the best, forever and always</Text>
         </View>
       </View>
     )
